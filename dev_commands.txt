@@ -1,0 +1,2 @@
+rm -rf /tmp/eeprom_bios.lua && wget http://localhost:8000/eeprom_bios.lua /tmp/eeprom_bios.lua && flash /tmp/eeprom_bios.lua
+rm -rf /mnt/b94/init.lua && wget http://localhost:8000/init.lua /mnt/b94/init.lua 
