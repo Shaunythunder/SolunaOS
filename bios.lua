@@ -58,6 +58,9 @@ do
             return load(buffer, "=init")
     end
 
+    --- Displays an error message on the screen.
+    --- @param msg string - The error message to display.
+    --- @return nil
     function errorMessage(msg)
         if gpu and screen then
             boot_invoke(gpu, "bind", screen)

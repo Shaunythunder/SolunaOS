@@ -1,2 +1,3 @@
-rm -rf /tmp/eeprom_bios.lua && wget http://localhost:8000/eeprom_bios.lua /tmp/eeprom_bios.lua && flash /tmp/eeprom_bios.lua
+rm -rf /tmp/bios.lua && wget http://localhost:8000/bios.lua /tmp/bios.lua && flash /tmp/bios.lua
 rm -rf /mnt/b94/init.lua && wget http://localhost:8000/init.lua /mnt/b94/init.lua 
+rm -rf /tmp/disk_imager.lua && wget http://localhost:8000/disk_imager.lua /tmp/disk_imager.lua && /tmp/disk_imager.lua
