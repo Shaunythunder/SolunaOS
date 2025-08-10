@@ -1,29 +1,34 @@
--- Pass hardware_registers to main from init.lua
-local hardware_registers = ...
+-- main.lua
+-- Runs the main loop for SolunaOS
+-- SolunaOS is a manager based operating system which uses a main loop.
 
-    --- Displays an error message on the screen.
-    --- @param msg string - The error message to display.
-    --- @return nil
-    local function errorMessage(msg)
-        local gpu = hardware_registers.gpu and hardware_registers.gpu[1].proxy
-        local screen = hardware_registers.screen and hardware_registers.screen[1].address
-        local BSOD_BLUE = 0x0000FF
-        local WHITE = 0xFFFFFF
-        if gpu and screen then
-            gpu.bind(screen)
-            local width, height = gpu.getResolution()
-            gpu.setBackground(BSOD_BLUE)
-            gpu.setForeground(WHITE)
-            gpu.fill(1, 1, width, height, " ")
-            local start_x = math.floor((width - #msg) / 2) + 1
-            local start_y = math.floor(height / 2)
-            gpu.set(start_x, start_y, msg)
-            computer.beep(1000, 0.5)
-            computer.beep(1000, 0.5)
-        else
-            error("GPU or screen not found")
-        end
+-- Pass hardware_registers and file loading to main from init.lua
+local hardware_registers, loadfile = ...
+
+--- Loads manager into main via protected call. Sends an error on failure.
+--- @param manager_path string - The path to the manager file.
+--- @return table - The loaded manager module.
+local function loadManager(manager_path)
+    local ok, manager_load = pcall(loadfile, manager_path)
+    if not ok then
+        error("Failed to load manager: " .. manager_path)
     end
+    local manager = manager_load()
+    return manager
+end
 
-    errorMessage("main.lua paoghvuesiraphgbuuripeashgufioe")
-    while true do computer.pullSignal() end
+-- Load all necessary managers
+local cli_manager = loadManager("lib/cli/cli_manager.lua")
+local terminal_manager = loadManager("lib/terminal/terminal_manager.lua")
+local driver_manager = loadManager("lib/drivers/driver_manager.lua")
+local garbage_manager = loadManager("lib/garbage/garbage_manager.lua")
+local gui_manager = loadManager("lib/gui/gui_manager.lua")
+local networking_manager = loadManager("lib/networking/networking_manager.lua")
+
+-- Main OS loop
+local running = true
+while running do
+    local event = {computer.pullSignal()}
+    running = cli_manager:handleEvent(event)
+end
+

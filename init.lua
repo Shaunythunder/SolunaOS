@@ -88,7 +88,7 @@ do
 
     local main, error = loadfile("/main.lua")
     if main then
-        local ok, error = pcall(main, hardware_registers)
+        local ok, error = pcall(main, hardware_registers, loadfile)
         if not ok then
             error("Failed to run main.lua: " .. tostring(error))
         end

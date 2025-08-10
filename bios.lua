@@ -58,24 +58,6 @@ do
             return load(buffer, "=init")
     end
 
-    --- Displays an error message on the screen.
-    --- @param msg string - The error message to display.
-    --- @return nil
-    function errorMessage(msg)
-        if gpu and screen then
-            boot_invoke(gpu, "bind", screen)
-            local width, height = boot_invoke(gpu, "getResolution")
-            boot_invoke(gpu, "setBackground", BSOD_BLUE)
-            boot_invoke(gpu, "setForeground", WHITE)
-            boot_invoke(gpu, "fill", 1, 1, width, height, " ")
-            local start_x = math.floor((width - #msg) / 2) + 1
-            local start_y = math.floor(height / 2)
-            boot_invoke(gpu, "set", start_x, start_y, msg)
-            computer.beep(1000, 0.5)
-            computer.beep(1000, 0.5)
-        end
-    end
-
     function errorMessage(msg)
         if gpu and screen then
             boot_invoke(gpu, "bind", screen)
