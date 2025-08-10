@@ -14,6 +14,9 @@ do
     local BSOD_BLUE = 0x0000FF
     local WHITE = 0xFFFFFF
 
+    --- Prints Blue Screen of Death message to screen
+    --- @param msg string The message to display
+    --- @return nil
     local function errorMessage(msg)
         local gpu = _G.PRIMARY_GPU
         local screen_addr = _G.PRIMARY_SCREEN_ADDR
@@ -53,6 +56,7 @@ do
     end
 
     --- Run all boot scripts in order.
+    --- @return nil
     local function runBootScripts()
         local ok, scripts = pcall(getBootScripts)
         if not ok then
