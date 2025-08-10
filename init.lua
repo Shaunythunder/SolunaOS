@@ -62,6 +62,10 @@ do
     internet             = detectHardware("internet"),
     inventory_controller = detectHardware("inventory_controller"),
     leash                = detectHardware("leash"),
+    me_controller        = detectHardware("me_controller"), -- Common network API
+    me_interface         = detectHardware("me_interface"), -- Common network API
+    me_importbus         = detectHardware("me_importbus"), -- Common network API
+    me_exportbus         = detectHardware("me_exportbus"), -- Common network API
     microcontroller      = detectHardware("microcontroller"),
     modem                = detectHardware("modem"),
     motion_sensor        = detectHardware("motion_sensor"),
@@ -77,6 +81,7 @@ do
     tractor_beam         = detectHardware("tractor_beam"),
     transposer           = detectHardware("transposer"),
     tunnel               = detectHardware("tunnel"),
+    userdata             = detectHardware("userdata"), --AE2, may not be real API
     world_sensor         = detectHardware("world_sensor")
     }
 
