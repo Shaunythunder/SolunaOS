@@ -41,6 +41,8 @@ do
     A table mapping hardware component names to their first detected proxy (or nil if not found).
     Each entry is an array of {address, proxy} tables for all detected components of that type, or nil if none found
     ]]
+
+    --- PLAN ON TRIMMING DOWN LATER ONCE I KNOW WHAT I NEED
     local hardware_registers = {
     printer3d            = detectHardware("printer3d"),
     abstract_bus         = detectHardware("abstract_bus"),
@@ -85,19 +87,13 @@ do
     world_sensor         = detectHardware("world_sensor")
     }
 
--- INSERT SPLASH SCREEN LOGIC 
--- INSERT SPLASH SCREEN LOGIC 
--- INSERT SPLASH SCREEN LOGIC 
--- INSERT SPLASH SCREEN LOGIC 
--- INSERT SPLASH SCREEN LOGIC 
-
-    local main, error = loadfile("/main.lua")
-    if main then
-        local ok, error = pcall(main, hardware_registers, loadfile)
+    local boot, boot_err = loadfile("/boot/boot.lua")
+    if boot then
+        local ok, load_err = pcall(boot, hardware_registers, loadfile)      
         if not ok then
-            error("Failed to run main.lua: " .. tostring(error))
+            error("Failed to run boot.lua: " .. tostring(load_err))
         end
     else
-        error("Failed to load main.lua: " .. tostring(error))
+        error("Failed to load boot.lua: " .. tostring(boot_err))
     end
 end

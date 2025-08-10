@@ -2,40 +2,35 @@
 -- Bootstraps the SolunaOS environment
 
 do
-    _G.OS_VERSION = "SolunaOS v 0.0.1"
+    local hardware_registers, loadfile = ...
 
-    local loadfile = ...
+    _G.OS_VERSION = "SolunaOS v 0.0.1"
+    _G.HARDWARE_REGISTERS = hardware_registers
+    _G.BOOT_ADDRESS = computer.getBootAddress()
+    _G.OS_FILESYSTEM = component.proxy(_G.BOOT_ADDRESS)
+    _G.PRIMARY_GPU = hardware_registers.gpu and hardware_registers.gpu[1].proxy
+    _G.PRIMARY_SCREEN_ADDR = hardware_registers.screen and hardware_registers.screen[1].address
+
     local BSOD_BLUE = 0x0000FF
     local WHITE = 0xFFFFFF
-    local component_invoke = component.invoke
-    local screen = component.list("screen")()
-    local gpu = component.list("gpu")()
- 
-    --- Safely invoke a method from component. Handles errors.
-    ---@param address string - component address
-    ---@param method string - method name to invoke
-    ---@param ... any -- method arguments for component ("gpu" for example).
-    local function boot_invoke(address, method, ...)
-        local result = table.pack(pcall(component_invoke, address, method, ...))
-        if not result[1] then
-            return nil, result[2]
-        else
-            return table.unpack(result, 2, result.n)
-        end
-    end
 
     local function errorMessage(msg)
-        if gpu and screen then
-            boot_invoke(gpu, "bind", screen)
-            local width, height = boot_invoke(gpu, "getResolution")
-            boot_invoke(gpu, "setBackground", BSOD_BLUE)
-            boot_invoke(gpu, "setForeground", WHITE)
-            boot_invoke(gpu, "fill", 1, 1, width, height, " ")
+        local gpu = _G.PRIMARY_GPU
+        local screen_addr = _G.PRIMARY_SCREEN_ADDR
+        if gpu and screen_addr then
+            gpu.bind(screen_addr)
+            local width, height = gpu.getResolution()
+            gpu.setBackground(BSOD_BLUE)
+            gpu.setForeground(WHITE)
+            gpu.fill(1, 1, width, height, " ")
             local start_x = math.floor((width - #msg) / 2) + 1
             local start_y = math.floor(height / 2)
-            boot_invoke(gpu, "set", start_x, start_y, msg)
+            gpu.set(start_x, start_y, msg)
             computer.beep(1000, 0.5)
             computer.beep(1000, 0.5)
+            while true do
+                computer.pullSignal(1)
+            end
         else
             computer.beep(1000, 0.5)
             computer.beep(1000, 0.5)
@@ -46,8 +41,9 @@ do
     ---@return string[] A list of boot scripts
     local function getBootScripts()
         local scripts = {}
-        local filesystem = component.proxy(component.list("filesystem")())
-        for filename in filesystem.list("/boot") do
+        local boot_addr = _G.BOOT_ADDRESS
+        local filesystem = _G.OS_FILESYSTEM
+        for _, filename in ipairs(filesystem.list("/boot")) do
             if filename:match("%.lua$") and filename ~= "boot.lua" then
                 table.insert(scripts, "/boot/" .. filename)
             end
@@ -66,13 +62,13 @@ do
         for _, script in ipairs(scripts) do
             local chunk, load_error = loadfile(script)
             if not chunk then
-                errorMessage("Failed to run boot script " .. script .. ": " .. tostring(load_error))
+                errorMessage("Boot Error: " .. script .. ": " .. tostring(load_error))
                 while true do computer.pullSignal(1) end
     
             end
             local run, run_error = pcall(chunk)
             if not run then
-                errorMessage("Failed to run boot script " .. script .. ": " .. tostring(run_error))
+                errorMessage("Boot Error: " .. script .. ": " .. tostring(run_error))
                 while true do computer.pullSignal(1) end
             end
         end
