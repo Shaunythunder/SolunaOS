@@ -5,21 +5,23 @@ do
     local hardware_registers, loadfile = ...
 
     _G.OS_VERSION = "SolunaOS v 0.0.1"
-    _G.HARDWARE_REGISTERS = hardware_registers
+    _G.hardware_registers = hardware_registers
     _G.BOOT_ADDRESS = computer.getBootAddress()
     _G.OS_FILESYSTEM = component.proxy(_G.BOOT_ADDRESS)
-    _G.PRIMARY_GPU = hardware_registers.gpu and hardware_registers.gpu[1].proxy
-    _G.PRIMARY_SCREEN_ADDR = hardware_registers.screen and hardware_registers.screen[1].address
+    _G.primary_gpu = hardware_registers.gpu and hardware_registers.gpu[1].proxy
+    _G.primary_screen_addr = hardware_registers.screen and hardware_registers.screen[1].address
 
     local BSOD_BLUE = 0x0000FF
     local WHITE = 0xFFFFFF
+
+    _G.errorMessage = nil -- Clean up global error message from BIOS.
 
     --- Prints Blue Screen of Death message to screen
     --- @param msg string The message to display
     --- @return nil
     local function errorMessage(msg)
-        local gpu = _G.PRIMARY_GPU
-        local screen_addr = _G.PRIMARY_SCREEN_ADDR
+        local gpu = _G.primary_gpu
+        local screen_addr = _G.primary_screen_addr
         if gpu and screen_addr then
             gpu.bind(screen_addr)
             local width, height = gpu.getResolution()

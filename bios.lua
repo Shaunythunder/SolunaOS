@@ -58,7 +58,11 @@ do
             return load(buffer, "=init")
     end
 
-    function errorMessage(msg)
+    --- Placing in global scope to be cleaned up later.
+    --- Error message function to display BSOD. BIOS version.
+    --- @param msg string The message to display
+    --- @return nil
+    _G.errorMessage = function(msg)
         if gpu and screen then
             boot_invoke(gpu, "bind", screen)
             local width, height = boot_invoke(gpu, "getResolution")
