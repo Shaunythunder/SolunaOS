@@ -26,9 +26,21 @@ do
             gpu.setBackground(BSOD_BLUE)
             gpu.setForeground(WHITE)
             gpu.fill(1, 1, width, height, " ")
-            local start_x = math.floor((width - #msg) / 2) + 1
-            local start_y = math.floor(height / 2)
-            gpu.set(start_x, start_y, msg)
+
+            local lines = {}
+            for line in msg:gmatch("[^\n]+") do
+                while #line > width do
+                    local wrap_line = line:sub(1, width)
+                    line = line:sub(width + 1)
+                    table.insert(lines, wrap_line)
+                end
+                table.insert(lines, line)
+            end
+            local start_y = math.floor((height - #lines) / 2) + 1
+            for pos, line in ipairs(lines) do
+                local start_x = math.floor((width - #line) / 2) + 1
+                gpu.set(start_x, start_y + pos - 1, line)
+            end
             computer.beep(1000, 0.5)
             computer.beep(1000, 0.5)
             while true do

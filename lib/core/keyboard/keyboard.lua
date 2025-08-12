@@ -1,8 +1,6 @@
 -- /lib/core/keyboard/keyboard.lua
 -- Keyboard input management module
 
-local keyboard_codes = require("core.keyboard_codes")
-
 local keyboard = {}
 keyboard.__index = keyboard
 
@@ -12,9 +10,44 @@ function keyboard.new()
     self.ctrl = false
     self.alt = false
     self.capslock = false
+    self.keys = {}
+    self:initKeys()
     return self
 end
 
+function keyboard:initKeys()
+    local keys = require("keyboard_codes")
+    self.keys = keys
+end
+
+function keyboard:getKeyName(code)
+    for _, key_entry in pairs(self.keys) do
+        if key_entry.code == code then
+            return key_entry.name
+        end
+    end
+    return nil
+end
+
+function keyboard:getKeyHandler(code)
+    for _, key_entry in pairs(self.keys) do
+        if key_entry.code == code then
+            return key_entry.handler
+        end
+    end
+    return nil
+end
+
+function keyboard:remapKey(code, new_handler)
+    for _, key_entry in pairs(self.keys) do
+        if key_entry.code == code then
+            key_entry.handler = new_handler
+            return true
+        end
+    end
+    return false
+end
+    
 function keyboard:reset()
     self.shift = false
     self.ctrl = false
@@ -165,10 +198,11 @@ end
 
 function keyboard:typeLetter(letter)
     if self.capslock ~= self.shift then
-        return letter:upper()
+        letter:upper()
     else
-        return letter:lower()
+        letter:lower()
     end
+    return letter
 end
 
 function keyboard:typeSymbol(symbol)

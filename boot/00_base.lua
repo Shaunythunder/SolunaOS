@@ -47,7 +47,7 @@ end
 -- and unloaded with the below functions.
 _G.loaded_modules = {}
 _G.package = _G.package or {}
-package.path = "/lib/?.lua;/lib/core/?.lua;/lib/core/keyboard/?.lua;/usr/lib/?.lua;/?.lua"
+package.path = "lib/?.lua;/lib/core/?.lua;lib/core/keyboard/?.lua;usr/lib/?.lua;?.lua"
 
 --- Loads library or custom API modules.
 --- @param module_name string -- The name of the module to load.
@@ -65,7 +65,7 @@ _G.require = function(module_name)
             return result
         end
     end
-    error("Module not found: " .. module_name .. " in package.path")
+    error("Error loading module " .. module_name .. ": " .. tostring(result))
 end
 
 --- Unloads a module by name, removing it from the cache.
@@ -107,7 +107,7 @@ _G.print = function(...)
     for i = 1, #arguments do
         string = string .. tostring(arguments[i])
         if i < #arguments then
-            string = string .. "\t"
+            string = string .. " "
         end
     end
 
