@@ -47,7 +47,7 @@ end
 -- and unloaded with the below functions.
 _G.loaded_modules = {}
 _G.package = _G.package or {}
-package.path = "lib/?.lua;/lib/core/?.lua;lib/core/keyboard/?.lua;usr/lib/?.lua;?.lua"
+package.path = "lib/?.lua;/lib/core/?.lua;lib/core/keyboard/?.lua;lib/core/event/?.lua;usr/lib/?.lua;?.lua"
 
 --- Loads library or custom API modules.
 --- @param module_name string -- The name of the module to load.
