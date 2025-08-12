@@ -1,5 +1,5 @@
 return {
-{filename = 'test.lua', size = 85, checksum = 6892},
+{filename = 'test.lua', size = 1083, checksum = 89437},
 {filename = 'disk_imager.lua', size = 10301, checksum = 833963},
 {filename = 'dev_commands.txt', size = 421, checksum = 36809},
 {filename = 'bios.lua', size = 4019, checksum = 307496},
@@ -8,7 +8,13 @@ return {
 {filename = 'init.lua', size = 4449, checksum = 338191},
 {filename = 'disk_updater.lua', size = 8339, checksum = 690815},
 {filename = 'boot/boot_animation.lua', size = 0, checksum = 0},
-{filename = 'boot/00_base.lua', size = 3908, checksum = 315391},
+{filename = 'boot/00_base.lua', size = 3933, checksum = 317654},
 {filename = 'boot/boot.lua', size = 2828, checksum = 211433},
-{filename = 'lib/core/os.lua', size = 2769, checksum = 240997},
+{filename = 'lib/core/event.lua', size = 500, checksum = 44568},
+{filename = 'lib/core/os.lua', size = 2783, checksum = 241463},
+{filename = 'lib/core/cursor.lua', size = 3224, checksum = 272091},
+{filename = 'lib/core/io.lua', size = 771, checksum = 62112},
+{filename = 'lib/core/keyboard/keyboard.lua', size = 4462, checksum = 358649},
+{filename = 'lib/core/keyboard/keyboard_codes.lua', size = 2977, checksum = 185634},
+{filename = 'lib/core/keyboard/keyboard_map.lua', size = 2982, checksum = 260337},
 }

@@ -1,3 +1,6 @@
+-- /lib/core/cursor.lua
+-- Cursor management module
+
 local os = require("os")
 local gpu = _G.primary_gpu
 local x_max_pos, y_max_pos = gpu.getResolution()

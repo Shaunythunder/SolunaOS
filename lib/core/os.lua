@@ -46,7 +46,9 @@ end
 --- @param timeout number -- Time to look for signals
 --- @return any|nil -- The signal received or nil if timeout.
 function os.pullSignal(timeout)
-    assert(type(timeout) == "number", "Timeout must be a number")
+    if timeout == nil then
+        timeout = 0 -- Default to no timeout
+    end
     return computer.pullSignal(timeout)
 end
 
