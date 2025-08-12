@@ -42,16 +42,6 @@ function os.totalMemory()
     return computer.totalMemory()
 end
 
---- Pulls a signal from the computer.
---- @param timeout number -- Time to look for signals
---- @return any|nil -- The signal received or nil if timeout.
-function os.pullSignal(timeout)
-    if timeout == nil then
-        timeout = 0 -- Default to no timeout
-    end
-    return computer.pullSignal(timeout)
-end
-
 function os.queueEvent(event, ...)
     return computer.pushSignal(event, ...)
 end
