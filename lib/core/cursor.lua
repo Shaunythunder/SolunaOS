@@ -3,15 +3,31 @@ local gpu = _G.primary_gpu
 local x_max_pos, y_max_pos = gpu.getResolution()
 local x_min_pos, y_min_pos = 1, 1 -- Also default position
 
-local cursor = {
-    x_pos = 1,
-    y_pos = 1,
-    x_max_pos = x_max_pos,
-    y_max_pos = y_max_pos,
-    x_min_pos = x_min_pos,
-    y_min_pos = y_min_pos,
-    symbol = "█"
-}
+local cursor = {}
+cursor.__index = cursor
+
+function cursor.new()
+    local self = setmetatable({}, cursor)
+    self.x_pos = x_min_pos
+    self.y_pos = y_min_pos
+    self.x_max_pos = x_max_pos
+    self.y_max_pos = y_max_pos
+    self.x_min_pos = x_min_pos
+    self.y_min_pos = y_min_pos
+    self.symbol = "█" -- Default cursor symbol
+    self.saved_x = nil
+    self.saved_y = nil
+    return self
+end
+
+function cursor:terminate()
+    self:hide()
+    for attribute in pairs(self) do
+        self[attribute] = nil -- Clear methods to free up memory
+    end
+    setmetatable(self, nil)
+    collectgarbage()
+end
 
 function cursor:reset()
     self.x_pos = 1
