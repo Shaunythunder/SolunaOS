@@ -1,6 +1,5 @@
 -- lib/core/os.lua
 -- Provides core operating system functionality for SolunaOS
-
 local os = {}
 
 local environment = {}

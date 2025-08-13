@@ -45,6 +45,29 @@ function cursor:updateBoundaries()
     self.x_max_pos, self.y_max_pos = gpu.getResolution()
 end
 
+function cursor:getMinX()
+    return self.x_min_pos
+end
+
+function cursor:getMinY()
+    return self.y_min_pos
+end
+
+function cursor:setMinY(y_min_pos)
+    self.y_min_pos = y_min_pos
+end
+
+function cursor:getMaxX()
+    return self.x_max_pos
+end
+
+function cursor:setMaxX(x_max_pos)
+    self.x_max_pos = x_max_pos
+end
+
+function cursor:getMaxY()
+    return self.y_max_pos
+end
 
 function cursor:setSymbol(symbol)
     if type(symbol) ~= "string" or #symbol ~= 1 then
@@ -54,7 +77,13 @@ function cursor:setSymbol(symbol)
 end
 
 function cursor:setPosition(x_set_pos, y_set_pos)
-    self:updateBoundaries()
+    local screen_width, screen_height = gpu.getResolution()
+    if self.x_max_pos > screen_width then
+        self.x_max_pos = screen_width
+    end
+    if self.y_max_pos > screen_height then
+        self.y_max_pos = screen_height
+    end
     if x_set_pos < self.x_min_pos then
         self.x_pos = self.x_min_pos
     elseif x_set_pos > self.x_max_pos then
@@ -116,12 +145,6 @@ function cursor:hide()
     gpu.set(self.x_pos, self.y_pos, " ")
 end
 
-function cursor:blink()
-    self:show()
-    os.sleep(0.5)
-    self:hide()
-    os.sleep(0.5)
-end
 
 function cursor:save()
     self.saved_x = self.x_pos

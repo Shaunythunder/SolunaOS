@@ -2,6 +2,37 @@
 -- Summary: Base boot script for SolunaOS, establish file loading, do file and printing.
 -- goal is to acheive similar functionality to the original openOS and then branch out from there.
 
+--- Temp print function to test rudimentary CLI
+--- @param ... any -- Values to print.
+--- @return nil
+_G.print = function(...)
+    local gpu = _G.primary_gpu
+    local screen_addr = _G.primary_screen_addr
+    local arguments = {...}
+    local string = ""
+
+    _G._print_y = _G._print_y or 1
+
+    for i = 1, #arguments do
+        string = string .. tostring(arguments[i])
+        if i < #arguments then
+            string = string .. " "
+        end
+    end
+
+    gpu.bind(screen_addr)
+    local width, height = gpu.getResolution()
+    if _G._print_y == 1 then
+        gpu.fill(1, 1, width, height, " ")
+    end
+    gpu.set(1, _G._print_y, string)
+    _G._print_y = _G._print_y + 1
+    if _G._print_y > height then
+        _G._print_y = 1
+        gpu.fill(1, 1, width, height, " ")
+    end
+end
+
 --- Opens and runs files on the OS.
 --- @param file_path string -- File path to file.
 --- @param ... any -- Arguments to pass to the loaded file.
@@ -36,9 +67,9 @@ _G.dofile = function(file_path, ...)
     end
 
     -- Call the loaded function with the provided arguments
-    local file_ran, result = pcall(load_file, ...)
+    local file_ran, result = xpcall(load_file, debug.traceback, ...)
     if not file_ran then
-        error("Failed to execute file: " .. result)
+        error("Failed to execute file: " .. file_path .. " " .. result)
     end
     return result
 end
@@ -47,8 +78,21 @@ end
 -- and unloaded with the below functions.
 _G.loaded_modules = {}
 _G.package = _G.package or {}
-package.path = "lib/?.lua;/lib/core/?.lua;lib/core/keyboard/?.lua;lib/core/event/?.lua;usr/lib/?.lua;?.lua"
 
+-- Package paths for module loading
+-- These paths allow require("<module_name>") instead of the full path
+local lib_path = "/lib/?.lua"
+local core_path = "/lib/core/?.lua"
+local keyboard_path = "/lib/core/keyboard/?.lua"
+local event_path = "/lib/core/event/?.lua"
+local custom_path = "?.lua"
+
+package.path = lib_path .. ";" ..
+               core_path .. ";" ..
+               keyboard_path .. ";" ..
+               event_path .. ";" ..
+               custom_path
+ --faeafd
 --- Loads library or custom API modules.
 --- @param module_name string -- The name of the module to load.
 --- @return any -- The loaded module or an error message.
@@ -57,15 +101,17 @@ _G.require = function(module_name)
     if loaded_modules[module_name] then
         return loaded_modules[module_name]
     end
-    for pattern in package.path:gmatch("[^;]+") do
-        local path = pattern:gsub("?", module_name)
-        local good_path, result = pcall(_G.dofile, path)
-        if good_path then
-            loaded_modules[module_name] = result
-            return result
-        end
+   for pattern in package.path:gmatch("[^;]+") do
+    local path = pattern:gsub("?", module_name)
+    local good_path, result = xpcall(_G.dofile, debug.traceback, path)
+    -- Only treat as success if the file pcalled and returned non-nil
+    if good_path then
+        local module_result = result
+        loaded_modules[module_name] = result
+        return result
     end
-    error("Error loading module " .. module_name .. ": " .. tostring(result))
+end
+error("Error loading module " .. module_name .. ": " .. tostring(result))
 end
 
 --- Unloads a module by name, removing it from the cache.
@@ -91,37 +137,3 @@ _G.wipeRequireCache = function()
     end
     collectgarbage()
 end
-
-
---- Temp print function to test rudimentary CLI
---- @param ... any -- Values to print.
---- @return nil
-_G.print = function(...)
-    local gpu = _G.primary_gpu
-    local screen_addr = _G.primary_screen_addr
-    local arguments = {...}
-    local string = ""
-
-    _G._print_y = _G._print_y or 1
-
-    for i = 1, #arguments do
-        string = string .. tostring(arguments[i])
-        if i < #arguments then
-            string = string .. " "
-        end
-    end
-
-    gpu.bind(screen_addr)
-    local width, height = gpu.getResolution()
-    if _G._print_y == 1 then
-        gpu.fill(1, 1, width, height, " ")
-    end
-    gpu.set(1, _G._print_y, string)
-    _G._print_y = _G._print_y + 1
-    if _G._print_y > height then
-        _G._print_y = 1
-        gpu.fill(1, 1, width, height, " ")
-    end
-end
-
-dofile("/test.lua")

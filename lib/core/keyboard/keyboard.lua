@@ -6,9 +6,12 @@ keyboard.__index = keyboard
 
 function keyboard.new()
     local self = setmetatable({}, keyboard)
-    self.shift = false
-    self.ctrl = false
-    self.alt = false
+    self.left_shift = false
+    self.right_shift = false
+    self.left_ctrl = false
+    self.right_ctrl = false
+    self.left_alt = false
+    self.right_alt = false
     self.capslock = false
     self.keys = {}
     self:initKeys()
@@ -29,19 +32,53 @@ function keyboard:getKeyName(code)
     return nil
 end
 
-function keyboard:getKeyHandler(code)
+function keyboard:getKeyDown(code)
     for _, key_entry in pairs(self.keys) do
         if key_entry.code == code then
-            return key_entry.handler
+            return key_entry.key_down
         end
     end
     return nil
 end
 
-function keyboard:remapKey(code, new_handler)
+function keyboard:triggerKeyDown(code)
+    local key_down_handler = nil
     for _, key_entry in pairs(self.keys) do
         if key_entry.code == code then
-            key_entry.handler = new_handler
+            key_down_handler = key_entry.key_down
+        end
+    end
+    if key_down_handler ~= nil then
+        return key_down_handler(self)
+    end
+end
+
+function keyboard:triggerKeyUp(code)
+    local key_up_handler = nil
+    for _, key_entry in pairs(self.keys) do
+        if key_entry.code == code then
+            key_up_handler = key_entry.key_up
+        end
+    end
+    if key_up_handler ~= nil then
+        return key_up_handler(self)
+    end
+end
+
+function keyboard:getKeyUp(code)
+    for _, key_entry in pairs(self.keys) do
+        if key_entry.code == code then
+            return key_entry.key_up
+        end
+    end
+    return nil
+end
+
+function keyboard:remapKey(code, key_down, key_up)
+    for _, key_entry in pairs(self.keys) do
+        if key_entry.code == code then
+            key_entry.key_down = key_down
+            key_entry.key_up = key_up
             return true
         end
     end
@@ -49,9 +86,12 @@ function keyboard:remapKey(code, new_handler)
 end
     
 function keyboard:reset()
-    self.shift = false
-    self.ctrl = false
-    self.alt = false
+    self.left_shift = false
+    self.right_shift = false
+    self.left_ctrl = false
+    self.right_ctrl = false
+    self.left_alt = false
+    self.right_alt = false
     self.capslock = false
 end
 
@@ -64,28 +104,72 @@ function keyboard:terminate()
 end
 
 function keyboard:isShiftPressed()
-    return self.shift
+    if self.left_shift or self.right_shift then
+        return true
+    end
+    return false
 end
 
-function keyboard:shiftToggle()
-    self.shift = not self.shift
+function keyboard:leftShiftUp()
+    self.left_shift = false
 end
 
+function keyboard:rightShiftUp()
+    self.right_shift = false
+end
+
+function keyboard:leftShiftDown()
+    self.left_shift = true
+end
+
+function keyboard:rightShiftDown()
+    self.right_shift = true
+end
 
 function keyboard:isCtrlPressed()
-    return self.ctrl
+    if self.left_ctrl or self.right_ctrl then
+        return true
+    end
+    return false
 end
 
-function keyboard:ctrlToggle()
-    self.ctrl = not self.ctrl
+function keyboard:leftCtrlUp()
+    self.left_ctrl = false
+end
+
+function keyboard:rightCtrlUp()
+    self.right_ctrl = false
+end
+
+function keyboard:leftCtrlDown()
+    self.left_ctrl = true
+end
+
+function keyboard:rightCtrlDown()
+    self.right_ctrl = true
 end
 
 function keyboard:isAltPressed()
-    return self.alt
+    if self.left_alt or self.right_alt then
+        return true
+    end
+    return false
+end
+    
+function keyboard:leftAltUp()
+    self.left_alt = false
 end
 
-function keyboard:altToggle()
-    self.alt = not self.alt
+function keyboard:rightAltUp()
+    self.right_alt = false
+end
+
+function keyboard:leftAltDown()
+    self.left_alt = true
+end
+
+function keyboard:rightAltDown()
+    self.right_alt = true
 end
 
 function keyboard:isCapsLockOn()
@@ -154,7 +238,6 @@ function keyboard:endKey(buffer_position, max_buffer_position)
     return buffer_position
 end
 
-
 function keyboard:backspace(string, position)
     if position and position > 1 then
         string = string:sub(1, position - 2) .. string:sub(position)
@@ -197,10 +280,10 @@ function keyboard:pageDown(y_position, max_y)
 end
 
 function keyboard:typeLetter(letter)
-    if self.capslock ~= self.shift then
-        letter:upper()
+    if (self.left_shift or self.right_shift) ~= self.capslock then
+        letter = letter:upper()
     else
-        letter:lower()
+        letter = letter:lower()
     end
     return letter
 end
@@ -229,7 +312,7 @@ function keyboard:typeSymbol(symbol)
         ["/"] = "?",
         ["`"] = "~"
     }
-    if self.shift and shift_symbols[symbol] then
+    if (self.left_shift or self.right_shift) and shift_symbols[symbol] then
         return shift_symbols[symbol]
     else
         return symbol
