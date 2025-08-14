@@ -269,15 +269,15 @@ local keyboard = {}
             K_RALT = {code = 0xB8, key_down = function() return keyboard:rightAltDown() end, key_up = function() return keyboard:rightAltUp() end},
             K_SPACE = {code = 0x39, key_down = function() return keyboard:typeSymbol(" ") end, key_up = nil},
             K_ENTER = {code = 0x1C, key_down = function() return keyboard:typeSymbol("\n") end, key_up = nil},
-            K_PRT_SCR = {code = 0x00, key_down = nil, key_up = nil},
-            K_SCROLL_LOCK = {code = 0x46, key_down = nil, key_up = nil},
-            K_PAUSE_BREAK = {code = 0x05, key_down = nil, key_up = nil},
-            K_INSERT = {code = 0xD2, key_down = nil, key_up = nil},
-            K_HOME = {code = 0xC7, key_down = function() return keyboard:home() end},
-            K_PGUP = {code = 0xC9, key_down = function() return keyboard:pageUp() end},
-            K_DEL = {code = 0xD3, key_down = function() return keyboard:delete() end},
-            K_END = {code = 0xCF, key_down = function() return keyboard:endKey() end},
-            K_PGDN = {code = 0xD1, key_down = function() return keyboard:pageDown() end},
+            K_PRT_SCR = {code = 0x00, key_down = function() return keyboard:typeLetter("prsc") end, key_up = nil},
+            K_SCROLL_LOCK = {code = 0x46, key_down = function() return keyboard:typeLetter("scrlk") end, key_up = nil},
+            K_PAUSE_BREAK = {code = 0x05, key_down = function() return keyboard:typeLetter("psbk") end, key_up = nil},
+            K_INSERT = {code = 0xD2, key_down = function() return keyboard:typeLetter("ins") end, key_up = nil},
+            K_HOME = {code = 0xC7, key_down = function() return keyboard:typeLetter("home") end, key_up = nil},
+            K_PGUP = {code = 0xC9, key_down = function() return keyboard:typeLetter("pgup") end, key_up = nil},
+            K_PGDN = {code = 0xD1, key_down = function() return keyboard:typeLetter("pgdn") end, key_up = nil},
+            K_DEL = {code = 0xD3, key_down = function() return keyboard:typeLetter("del") end, key_up = nil},
+            K_END = {code = 0xCF, key_down = function() return keyboard:typeLetter("end") end, key_up = nil},
 
             -- Letter Keys
             K_A = {code = 0x1E, key_down = function() return keyboard:typeLetter("a") end, key_up = nil},
@@ -319,8 +319,8 @@ local keyboard = {}
             K_APOSTROPHE = {code = 0x28, key_down = function() return keyboard:typeSymbol("'") end, key_up = nil},
 
             -- Navigation Keys
-            K_LEFT_ARROW = {code = 0xCB, key_down = function() return keyboard:typeSymbol("\\<") end, key_up = nil},
-            K_RIGHT_ARROW = {code = 0xCD, key_down = function() return keyboard:typeSymbol("\\>") end, key_up = nil},
+            K_LEFT_ARROW = {code = 0xCB, key_down = function() return keyboard:typeSymbol("<-") end, key_up = nil},
+            K_RIGHT_ARROW = {code = 0xCD, key_down = function() return keyboard:typeSymbol("->") end, key_up = nil},
             K_UP_ARROW = {code = 0xC8, key_down = function() return keyboard:typeSymbol("\\^") end, key_up = nil},
             K_DOWN_ARROW = {code = 0xD0, key_down = function() return keyboard:typeSymbol("\\v") end, key_up = nil},
 

@@ -94,7 +94,15 @@ function io.read(prompt)
             input_buffer:insert("    ")
         elseif character == "\b" then
             input_buffer:backspace()
-        else
+        elseif character == "del" then
+            input_buffer:delete()
+        elseif character == "<-" then
+            input_buffer:moveLeft()
+            cursor:setPosition(input_buffer:getPosition(), cursor:getHomeY())
+        elseif character == "->" then
+            input_buffer:moveRight()
+            cursor:setPosition(input_buffer:getPosition(), cursor:getHomeY())
+        elseif #character == 1 then
             input_buffer:insert(character)
         end
         local string = prepend_text .. input_buffer:getText()
