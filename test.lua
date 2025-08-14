@@ -1,5 +1,5 @@
 
-local Keyboard = require("keyboard")
+local Keyboard = require("lib.core.keyboard")
 local keyboard = Keyboard.new()
 local keys = keyboard.keys -- ensure not nil
 

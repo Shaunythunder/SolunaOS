@@ -83,13 +83,11 @@ _G.package = _G.package or {}
 -- These paths allow require("<module_name>") instead of the full path
 local lib_path = "/lib/?.lua"
 local core_path = "/lib/core/?.lua"
-local keyboard_path = "/lib/core/keyboard/?.lua"
 local event_path = "/lib/core/event/?.lua"
 local custom_path = "?.lua"
 
 package.path = lib_path .. ";" ..
                core_path .. ";" ..
-               keyboard_path .. ";" ..
                event_path .. ";" ..
                custom_path
  --faeafd

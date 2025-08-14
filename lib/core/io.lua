@@ -15,35 +15,49 @@ local TAB = keyboard.keys.K_TAB.code
 local L_ARROW = keyboard.keys.K_LEFT_ARROW.code
 local R_ARROW = keyboard.keys.K_RIGHT_ARROW.code
 
+local BLACK = 0x000000
+local WHITE = 0xFFFFFF
+
 local io = {}
 
-
-
 function io.write(input_str)
-    local string_index = 1
+    local string_length = #input_str
+    local lines = {}
     local width, _ = gpu.getResolution()
-    for character in input_str:gmatch(".") do
-        gpu.set(cursor:getX(), cursor:getY(), character)
-        cursor:movePosition(1, 0)
+    gpu.setForeground(WHITE)
+    gpu.setBackground(BLACK)
+    while string_length > width do
+        local line = input_str:sub(1, width)
+        table.insert(lines, line)
+        input_str = input_str:sub(width + 1)
+        string_length = #input_str
+    end
+    table.insert(lines, input_str)
+    for _, line in ipairs(lines) do
+        gpu.fill(cursor:getX(), cursor:getY(), width, 1, " ")
+        gpu.set(cursor:getX(), cursor:getY(), line)
+        cursor:movePosition(0, 1)
+    end
+    local cursor_x = (string_length % width) + 1
+    local cursor_y = cursor:getY()
+    if string_length % width == 0 then
+        cursor_y = cursor_y + 1
+    end
+    cursor:setPosition(cursor_x, cursor_y - 1)
+end
+
+function io.calcWrap(prepend_text, string)
+    local string_index = 1 + #prepend_text
+    local wrap_index = 1
+    local width, _ = gpu.getResolution()
+    for character in string:gmatch(".") do
         string_index = string_index + 1
         if string_index > width then
             string_index = 1
-            cursor:setPosition(1, cursor:getY() + 1)
+            wrap_index = wrap_index + 1
         end
     end
-    cursor:hide()
-end
-
-function io.redrawInput(prepend_text, input_buffer)
-    local y_pos = cursor:getY()
-    local width, _ = gpu.getResolution()
-    gpu.fill(cursor:getX(), cursor:getY(), width, 1, " ")
-    cursor:setPosition(1, y_pos)
-    io.write(prepend_text)
-    cursor:setPosition(#prepend_text + 1, y_pos)
-    io.write(input_buffer:getText())
-    cursor:setPosition(#prepend_text + input_buffer:getPosition(), y_pos)
-    cursor:show()
+    return wrap_index
 end
 
 function io.read(prompt)
@@ -66,7 +80,15 @@ function io.read(prompt)
         end
         if character == "\n" then
             cursor:hide()
-            cursor:setPosition(cursor:getX(), cursor:getY() + 1)
+            local wraps = io.calcWrap(prepend_text, input_buffer:getText())
+            local new_y = cursor:getHomeY()
+            if wraps > 0 then
+                new_y = cursor:getHomeY() + wraps
+            else
+                new_y = cursor:getHomeY() + 1
+            end
+            cursor:setHomeY(new_y)
+            cursor:setPosition(1, new_y)
             break
         elseif character == "\t" then
             input_buffer:insert("    ")
@@ -75,9 +97,11 @@ function io.read(prompt)
         else
             input_buffer:insert(character)
         end
-        io.redrawInput(prepend_text, input_buffer)
+        local string = prepend_text .. input_buffer:getText()
+        cursor:setPosition(1, cursor:getHomeY())
+        io.write(string)
     end
-    cursor:show()
+    cursor:hide()
     return input_buffer:getText()
 end
 

@@ -1,6 +1,10 @@
 -- lib/core/event/event.lua
 -- Provides core event handling functionality for SolunaOS
+
+
 local keyboard = _G.keyboard
+
+
 local LSHIFT = keyboard.keys.K_LSHIFT.code
 local RSHIFT = keyboard.keys.K_RSHIFT.code
 local LCTRL = keyboard.keys.K_LCTRL.code
@@ -46,11 +50,11 @@ function event:listen()
 end
 
 function event:keyboardListen(timeout)
-    local event_type, arg1, arg2, key_code, arg4 = computer.pullSignal(timeout)
+    local event_type, _, _, key_code, _ = computer.pullSignal(timeout)
     if event_type == "key_down" then
-        return keyboard:triggerKeyDown(key_code)
+        return _G.keyboard:triggerKeyDown(key_code)
     elseif event_type == "key_up" then
-        return keyboard:triggerKeyUp(key_code)
+        return _G.keyboard:triggerKeyUp(key_code)
     end
 end
 
