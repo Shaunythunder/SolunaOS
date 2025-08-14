@@ -1,4 +1,4 @@
--- /lib/core/keyboard/keyboard.lua
+-- /lib/core/keyboard.lua
 -- Keyboard input management module
 -- Special functions such as arrow keys, page up/down, home/end, insert/delete,
 -- enter, backspace, etc. are handled app-side. The keyboard sends a
