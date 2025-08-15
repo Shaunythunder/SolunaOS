@@ -9,12 +9,6 @@ local keyboard = _G.keyboard
 local gpu = _G.primary_gpu
 local cursor = Cursor.new()
 
-local ENTER = keyboard.keys.K_ENTER
-local BACKSPACE = keyboard.keys.K_BACKSPACE.code
-local TAB = keyboard.keys.K_TAB.code
-local L_ARROW = keyboard.keys.K_LEFT_ARROW.code
-local R_ARROW = keyboard.keys.K_RIGHT_ARROW.code
-
 local BLACK = 0x000000
 local WHITE = 0xFFFFFF
 

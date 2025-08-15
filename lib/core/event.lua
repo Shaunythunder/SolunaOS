@@ -9,7 +9,7 @@ event.__init = event
     event.new = function()
         local self = setmetatable({}, { __index = event })
         self.event_handlers = {}
-        self:initHandlers()
+        --self:initHandlers()
         return self
     end
 
@@ -39,6 +39,9 @@ event.__init = event
         return event_type, arg1, arg2, arg3, arg4
     end
 
+    --- Listens for keyboard events triggers keyboard functions.
+    --- @param timeout number|nil
+    --- @return function|nil triggerKeyEvent (key_code)
     function event:keyboardListen(timeout)
         local event_type, _, _, key_code, _ = computer.pullSignal(timeout)
         if event_type == "key_down" then

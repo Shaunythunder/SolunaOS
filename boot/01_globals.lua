@@ -8,4 +8,4 @@ local Event = require("event")
 local event = Event.new()
 _G.event = event
 
-dofile("/lib/shell.lua")
+dofile("/test.lua")

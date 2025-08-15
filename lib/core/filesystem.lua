@@ -4,57 +4,53 @@
 -- Food for thought, these probably will get used as bin calls so throwing errors will be refactored once in prod
 
 local disk = _G.disk or require("disk")
+local os = require("os")
 
 local filesystem = {}
 
-    function filesystem.getType(absolute_path)
-        local real_path = filesystem.getPathTable(absolute_path)
-        if not real_path then
-            return nil, "File or directory does not exist"
-        end
-        return real_path.type
-    end
-
-    function filesystem.splitPath(absolute_path)
+    --- Splits a filesystem path into its directories
+    --- @param abs_path string
+    --- @return table directories
+    function filesystem.splitPath(abs_path)
         local directories = {}
-        for directory in absolute_path:gmatch("[^/]+") do
+        for directory in abs_path:gmatch("[^/]+") do
             table.insert(directories, directory)
         end
         return directories
     end
 
-    --- Validate the type of a filesystem object to intended type and return if file or directory
-    ---@param validatee string: The absolute path to the filesystem object
-    ---@param mode string: The intended mode ("s" (string), "f" (file), "d" (directory), "t" (table), or "n" (number))
-    ---@return boolean: True if the type is valid, false otherwise
-    ---@return string|nil: An error message if the type is invalid, nil otherwise
-    ---@return table|nil path_table The real path if the type is valid, nil otherwise
-    function filesystem.validateType(validatee, mode)
+    --- Validate object type
+    ---@param abs_path string
+    ---@param mode string: "s" (string), "f" (file), "d" (directory), "t" (table), or "n" (number)
+    ---@return boolean result
+    ---@return string|nil error
+    ---@return table|nil path_table only if "f" or "d"
+    function filesystem.validateType(abs_path, mode)
         if mode ~= "s" and mode ~= "f" and mode ~= "d" and mode ~= "t" and mode ~= "n" then
             return false, "bad argument (mode): invalid mode, must be 's', 'f', 'd', 't', or 'n'"
         end
         if mode == "n" then
-            if type(validatee) ~= "number" then
-                return false, "number expected, got " .. type(validatee)
+            if type(abs_path) ~= "number" then
+                return false, "number expected, got " .. type(abs_path)
             end
             return true, nil, nil
         end
 
         if mode == "t" then
-            if type(validatee) ~= "table" then
-                return false, "table expected, got " .. type(validatee)
+            if type(abs_path) ~= "table" then
+                return false, "table expected, got " .. type(abs_path)
             end
             return true, nil, nil
         end
 
-        if type(validatee) ~= "string" then
-            return false, "string expected, got " .. type(validatee)
+        if type(abs_path) ~= "string" then
+            return false, "string expected, got " .. type(abs_path)
         end
         if mode == "s" then
             return true, nil, nil
         end
         
-        local path_table = filesystem.getPathTable(validatee)
+        local path_table = filesystem.getPathTable(abs_path)
         if not path_table then
             return false, "File or directory does not exist"
         end
@@ -66,14 +62,14 @@ local filesystem = {}
         return true, nil, path_table
     end
 
-    --- Validate the path and return the file path and file name
+    --- Converts absolute path to relative path and file name
     --- Sets file_path to root if no directory
-    --- @param absolute_path string The absolute path to validate
-    --- @return string file_path validated file path
-    --- @return string file_name validated file name
-    function filesystem.validatePath(absolute_path)
-        assert(type(absolute_path) == "string", "string expected, got " .. type(absolute_path))
-        local file_path, file_name = absolute_path:match("^(.*)/([^/]+)$")
+    --- @param abs_path string
+    --- @return string file_path
+    --- @return string file_name
+    function filesystem.validatePath(abs_path)
+        assert(type(abs_path) == "string", "string expected, got " .. type(abs_path))
+        local file_path, file_name = abs_path:match("^(.*)/([^/]+)$")
             -- Sets path to root if file_path is empty
             if not file_path or file_path == "" then
                 file_path = "/"
@@ -83,15 +79,14 @@ local filesystem = {}
 
     --entries is for the mock file system. replace once real fs is implemented
     -- this and split path are needed for mock system. look at filesystem component api for details.
-    function filesystem.getPathTable(absolute_path)
+    function filesystem.getPathTable(abs_path)
         local path_table = disk["/"]
-        if absolute_path == "/" then
+        if abs_path == "/" then
             return path_table
         end
-        local directories = filesystem.split_path(absolute_path)
+        local directories = filesystem.splitPath(abs_path)
         for _, directory in ipairs(directories) do
-            path_table = path_table[directory]
-            if not path_table.entries or not path_table.entries[directory] then
+            if not path_table or not path_table.entries or not path_table.entries[directory] then
                 return nil
             end
             path_table = path_table.entries[directory]
@@ -129,7 +124,7 @@ local filesystem = {}
             if not ok then
                 error(err)
             end
-            parent_table.entries[file_name] = {type = "file", data = "", size = 0, modified = os.time()}
+            parent_table.entries[file_name] = {type = "file", data = "", size = 0, modified = os.uptime()}
             return {table = parent_table.entries[file_name], mode = mode, position = 1}
 
         elseif mode == "a" or mode == "ab" then
@@ -140,7 +135,7 @@ local filesystem = {}
             end
 
             if not parent_table.entries[file_name] or parent_table.entries[file_name].type ~= "file" then
-                parent_table.entries[file_name] = {type = "file", data = "", size = 0, modified = os.time()}
+                parent_table.entries[file_name] = {type = "file", data = "", size = 0, modified = os.uptime()}
             end
             local file = parent_table.entries[file_name]
             return {table = file, mode = mode, position = #file.data + 1}
@@ -175,10 +170,14 @@ local filesystem = {}
         return return_data
     end
 
+    --- Close an open file.
+    --- @param file table
+    --- @return boolean|nil result
+    --- @return string|nil error
     function filesystem.close(file)
-        local ok, error = filesystem.validateType(file, "t")
+        local ok, err = filesystem.validateType(file, "t")
         if not ok then
-            return nil, error
+            return nil, err
         end
         file.closed = true
         if file.closed == true then
@@ -238,8 +237,7 @@ local filesystem = {}
     end
 
     function filesystem.list(path)
-        local directory = filesystem.getPathTable(path)
-        local ok, err = filesystem.validateType(directory, "d")
+        local ok, err, directory = filesystem.validateType(path, "d")
         if not ok then
             return nil, err
         end
@@ -248,7 +246,7 @@ local filesystem = {}
         for name in pairs(directory.entries) do
             table.insert(locations, name)
         end
-        return locations
+        return locations, nil
     end
 
     function filesystem.isDirectory(path)
@@ -260,6 +258,10 @@ local filesystem = {}
         end
     end
 
+    --- Creates a directory in the desired path.
+    ---@param path string
+    ---@return true|nil result
+    ---@return nil|string error
     function filesystem.makeDirectory(path)
         if type(path) ~= "string"  or path == "" or path == "/" then
             return nil, "bad argument (path): invalid directory path"
@@ -279,9 +281,9 @@ local filesystem = {}
         parent_table.entries[dir_name] = {
             type = "dir",
             entries = {},
-            modified = os.time()
+            modified = os.uptime()
         }
-        return true
+        return true, nil
     end
 
     local function recursionCopy(copy_directory)
@@ -290,7 +292,6 @@ local filesystem = {}
                                     type = "dir",
                                     entries = {}
                                     }
-
             for directory, file in pairs(copy_directory.entries) do
                 new_directory.entries[directory] = recursionCopy(file)
             end
@@ -491,7 +492,7 @@ local filesystem = {}
         local tries = 0
         local temp_file_name
         repeat
-            temp_file_name = "tmp_" .. tostring(os.time()) .. "_" .. tostring(math.random(1000, 9999))
+            temp_file_name = "tmp_" .. tostring(os.uptime()) .. "_" .. tostring(math.random(1000, 9999))
             tries = tries + 1
         until not temp_path.entries[temp_file_name] or tries > 100
 
@@ -503,7 +504,7 @@ local filesystem = {}
             type = "file", 
             data = "",
             size = 0,
-            modified = os.time()
+            modified = os.uptime()
         }
         return "/tmp/" .. temp_file_name
     end

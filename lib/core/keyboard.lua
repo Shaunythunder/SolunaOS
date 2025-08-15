@@ -37,13 +37,13 @@ local keyboard = {}
     end
 
     -- Binds a key code to a key down and key up handler
-    --- @param code number key code to bind, see keyboard_codes.lua for codes
-    --- @param key_down function function to call when the key is pressed
-    --- @param key_up function the function to call when the key is released
-    --- @return boolean true if the key was bound successfully, false otherwise
-    function keyboard:bindKey(code, key_down, key_up)
+    --- @param key_code number codes in keyboard.lua
+    --- @param key_down function
+    --- @param key_up function
+    --- @return boolean result
+    function keyboard:bindKey(key_code, key_down, key_up)
         for _, key_entry in pairs(self.keys) do
-            if key_entry.code == code then
+            if key_entry.code == key_code then
                 key_entry.key_down = key_down
                 key_entry.key_up = key_up
                 return true
@@ -52,13 +52,13 @@ local keyboard = {}
         return false
     end
 
-    --- Pulls the key down handler for a given key code and runs the function
-    --- @param code number key code to trigger
-    --- @return any result of the key down handler function, or nil if none assigned
-    function keyboard:triggerKeyDown(code)
+    --- Runs function bound to key code on key_down
+    --- @param key_code number
+    --- @return any function 
+    function keyboard:triggerKeyDown(key_code)
         local key_down_handler = nil
         for _, key_entry in pairs(self.keys) do
-            if key_entry.code == code then
+            if key_entry.code == key_code then
                 key_down_handler = key_entry.key_down
             end
         end
@@ -67,13 +67,13 @@ local keyboard = {}
         end
     end
 
-    --- Pulls the key up handler for a given key code and runs the function
-    --- @param code number key code to trigger
-    --- @return any result of the key up handler function, or nil if none assigned
-    function keyboard:triggerKeyUp(code)
+    --- Runs function bound to key code on key_up
+    --- @param key_code number
+    --- @return any function 
+    function keyboard:triggerKeyUp(key_code)
         local key_up_handler = nil
         for _, key_entry in pairs(self.keys) do
-            if key_entry.code == code then
+            if key_entry.code == key_code then
                 key_up_handler = key_entry.key_up
             end
         end
@@ -82,93 +82,74 @@ local keyboard = {}
         end
     end
 
-    --- Flips left shift flag on key up.
-    --- @return nil
+    --- left shift off
     function keyboard:leftShiftUp()
         self.left_shift = false
     end
 
-    --- Flips right shift flag on key up.
-    --- @return nil
+    --- right shift off
     function keyboard:rightShiftUp()
         self.right_shift = false
     end
 
-    --- Flips left shift flag on key down.
-    --- @return nil
+    --- left shift on
     function keyboard:leftShiftDown()
         self.left_shift = true
     end
 
-    --- Flips right shift flag on key down.
-    --- @return nil
+    --- right shift on
     function keyboard:rightShiftDown()
         self.right_shift = true
     end
 
-    --- Flips left ctrl flag on key up.
-    --- @return nil
+    --- left ctrl off
     function keyboard:leftCtrlUp()
         self.left_ctrl = false
     end
 
-    --- Flips right ctrl flag on key up.
-    --- @return nil
+    --- right ctrl off
     function keyboard:rightCtrlUp()
         self.right_ctrl = false
     end
 
-    --- Flips left ctrl flag on key down.
-    --- @return nil
+    --- left ctrl on
     function keyboard:leftCtrlDown()
         self.left_ctrl = true
     end
 
-    --- Flips right ctrl flag on key down.
-    --- @return nil
+    --- right ctrl on
     function keyboard:rightCtrlDown()
         self.right_ctrl = true
     end
 
-    --- Flips left alt flag on key up.
+    --- left alt off
     --- @return nil
     function keyboard:leftAltUp()
         self.left_alt = false
     end
 
-    --- Flips right alt flag on key up.
-    --- @return nil
+    --- right alt off
     function keyboard:rightAltUp()
         self.right_alt = false
     end
 
-    --- Flips left alt flag on key down.
-    --- @return nil
+    --- right alt on
     function keyboard:leftAltDown()
         self.left_alt = true
     end
 
-    --- Flips right alt flag on key down.
-    --- @return nil
+    --- right alt on
     function keyboard:rightAltDown()
         self.right_alt = true
     end
 
-    --- Checks if caps lock is on.
-    --- @return boolean true if caps lock is on, false otherwise
-    function keyboard:isCapsLockOn()
-        return self.capslock
-    end
-
-    --- Flips caps lock flag
-    --- @return nil
     function keyboard:capsLockToggle()
         self.capslock = not self.capslock
     end
 
     --- Converts a letter to the correct case based on shift and caps lock state
-    --- @param letter string the letter to convert
-    --- @return string the converted letter
+    --- @param letter string
+    --- @return string letter
     function keyboard:typeLetter(letter)
         if (self.left_shift or self.right_shift) ~= self.capslock then
             letter = letter:upper()
@@ -179,9 +160,8 @@ local keyboard = {}
     end
 
     --- Types a symbol, taking into account the current shift state
-    --- Also sends special characters to signify keys for special handling such as "\n" for enter.
-    --- @param symbol string the symbol to type
-    --- @return string the typed symbol
+    --- @param symbol string 
+    --- @return string symbol
     function keyboard:typeSymbol(symbol)
         local shift_symbols = {
             ["1"] = "!",
@@ -213,13 +193,9 @@ local keyboard = {}
         end
     end
 
-    --- Initializes the keyboard with key codes and their handlers
     --- Contains default keyboard settings.
-    --- @return nil
     function keyboard:initKeys()
         local keyboard = self
-
-        -- Note I could not get LALT to function during testing. Possible hardware issue.
 
         local keys = {
             -- Function keys
@@ -344,7 +320,7 @@ local keyboard = {}
             K_NUMPAD_PERIOD = {code = 0x53, key_down = function() return keyboard:typeSymbol(".") end, key_up = nil},
 
             -- Japanese Keys
-            -- Note these were carried over from OpenOS, I don't own any japanese keys. Do with them as you like.
+            -- UNTESTED
             K_KEY_KANA = {code = 0x70, key_down = nil, key_up = nil},
             K_KEY_KANJI = {code = 0x94, key_down = nil, key_up = nil},
             K_KEY_CONVERT = {code = 0x79, key_down = nil, key_up = nil},
