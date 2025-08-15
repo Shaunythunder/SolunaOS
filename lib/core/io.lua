@@ -20,103 +20,103 @@ local WHITE = 0xFFFFFF
 
 local io = {}
 
-function io.write(input_str)
-    local string_length = #input_str
-    local lines = {}
-    local width, _ = gpu.getResolution()
-    gpu.setForeground(WHITE)
-    gpu.setBackground(BLACK)
-    while string_length > width do
-        local line = input_str:sub(1, width)
-        table.insert(lines, line)
-        input_str = input_str:sub(width + 1)
-        string_length = #input_str
-    end
-    table.insert(lines, input_str)
-    for _, line in ipairs(lines) do
-        gpu.fill(cursor:getX(), cursor:getY(), width, 1, " ")
-        gpu.set(cursor:getX(), cursor:getY(), line)
-        cursor:movePosition(0, 1)
-    end
-    local cursor_x = (string_length % width) + 1
-    local cursor_y = cursor:getY()
-    if string_length % width == 0 then
-        cursor_y = cursor_y + 1
-    end
-    cursor:setPosition(cursor_x, cursor_y - 1)
-end
-
-function io.calcWrap(prepend_text, string)
-    local string_index = 1 + #prepend_text
-    local wrap_index = 1
-    local width, _ = gpu.getResolution()
-    for character in string:gmatch(".") do
-        string_index = string_index + 1
-        if string_index > width then
-            string_index = 1
-            wrap_index = wrap_index + 1
+    function io.write(input_str)
+        local string_length = #input_str
+        local lines = {}
+        local width, _ = gpu.getResolution()
+        gpu.setForeground(WHITE)
+        gpu.setBackground(BLACK)
+        while string_length > width do
+            local line = input_str:sub(1, width)
+            table.insert(lines, line)
+            input_str = input_str:sub(width + 1)
+            string_length = #input_str
         end
+        table.insert(lines, input_str)
+        for _, line in ipairs(lines) do
+            gpu.fill(cursor:getX(), cursor:getY(), width, 1, " ")
+            gpu.set(cursor:getX(), cursor:getY(), line)
+            cursor:movePosition(0, 1)
+        end
+        local cursor_x = (string_length % width) + 1
+        local cursor_y = cursor:getY()
+        if string_length % width == 0 then
+            cursor_y = cursor_y + 1
+        end
+        cursor:setPosition(cursor_x, cursor_y - 1)
     end
-    return wrap_index
-end
 
-function io.read(prompt)
-    local prepend_text = prompt or ""
-    io.write(prepend_text)
-    local input_buffer = text_buffer.new()
-    while true do
-        local character = nil
-        while character == nil do
-            cursor:show()
-            character = event:keyboardListen(0.5)
-            if character ~= nil then
+    function io.calcWrap(prepend_text, string)
+        local string_index = 1 + #prepend_text
+        local wrap_index = 1
+        local width, _ = gpu.getResolution()
+        for character in string:gmatch(".") do
+            string_index = string_index + 1
+            if string_index > width then
+                string_index = 1
+                wrap_index = wrap_index + 1
+            end
+        end
+        return wrap_index
+    end
+
+    function io.read(prompt)
+        local prepend_text = prompt or ""
+        io.write(prepend_text)
+        local input_buffer = text_buffer.new()
+        while true do
+            local character = nil
+            while character == nil do
+                cursor:show()
+                character = event:keyboardListen(0.5)
+                if character ~= nil then
+                    break
+                end
+                cursor:hide()
+                character = event:keyboardListen(0.5)
+                if character ~= nil then
+                    break
+                end
+            end
+            if character == "\n" then
+                cursor:hide()
+                local wraps = io.calcWrap(prepend_text, input_buffer:getText())
+                local new_y = cursor:getHomeY()
+                if wraps > 0 then
+                    new_y = cursor:getHomeY() + wraps
+                else
+                    new_y = cursor:getHomeY() + 1
+                end
+                cursor:setHomeY(new_y)
+                cursor:setPosition(1, new_y)
                 break
+            elseif character == "\t" then
+                input_buffer:insert("    ")
+            elseif character == "\b" then
+                input_buffer:backspace()
+            elseif character == "del" then
+                input_buffer:delete()
+            elseif character == "<-" then
+                input_buffer:moveLeft()
+                cursor:setPosition(input_buffer:getPosition(), cursor:getHomeY())
+            elseif character == "->" then
+                input_buffer:moveRight()
+                cursor:setPosition(input_buffer:getPosition(), cursor:getHomeY())
+            elseif #character == 1 then
+                input_buffer:insert(character)
             end
-            cursor:hide()
-            character = event:keyboardListen(0.5)
-            if character ~= nil then
-                break
-            end
+            local string = prepend_text .. input_buffer:getText()
+            cursor:setPosition(1, cursor:getHomeY())
+            io.write(string)
         end
-        if character == "\n" then
-            cursor:hide()
-            local wraps = io.calcWrap(prepend_text, input_buffer:getText())
-            local new_y = cursor:getHomeY()
-            if wraps > 0 then
-                new_y = cursor:getHomeY() + wraps
-            else
-                new_y = cursor:getHomeY() + 1
-            end
-            cursor:setHomeY(new_y)
-            cursor:setPosition(1, new_y)
-            break
-        elseif character == "\t" then
-            input_buffer:insert("    ")
-        elseif character == "\b" then
-            input_buffer:backspace()
-        elseif character == "del" then
-            input_buffer:delete()
-        elseif character == "<-" then
-            input_buffer:moveLeft()
-            cursor:setPosition(input_buffer:getPosition(), cursor:getHomeY())
-        elseif character == "->" then
-            input_buffer:moveRight()
-            cursor:setPosition(input_buffer:getPosition(), cursor:getHomeY())
-        elseif #character == 1 then
-            input_buffer:insert(character)
-        end
-        local string = prepend_text .. input_buffer:getText()
-        cursor:setPosition(1, cursor:getHomeY())
-        io.write(string)
+        cursor:hide()
+        return input_buffer:getText()
     end
-    cursor:hide()
-    return input_buffer:getText()
-end
 
-function io.clear()
-    local width, height = gpu.getResolution()
-    gpu.fill(1, 1, width, height, " ")
-    cursor:setPosition(1, 1)
-end
+    function io.clear()
+        local width, height = gpu.getResolution()
+        gpu.fill(1, 1, width, height, " ")
+        cursor:setPosition(1, 1)
+    end
 
 return io
