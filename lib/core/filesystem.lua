@@ -1,27 +1,27 @@
 -- /lib/core/filesystem.lua
 -- Provides core filesystem functionality for SolunaOS
+-- File metatables not to be confused with Lua object metatables
+-- Contents are located in (file or dir).metatable.content
 
--- Food for thought, these probably will get used as bin calls so throwing errors will be refactored once in prod
-
-local disk = _G.disk or require("disk")
+local disk = _G.disk or require("disk") -- Fake filesystem
 local os = require("os")
 
 local filesystem = {}
 
     --- Splits a filesystem path into its directories
     --- @param abs_path string
-    --- @return table directories
+    --- @return table dirs
     function filesystem.splitPath(abs_path)
-        local directories = {}
-        for directory in abs_path:gmatch("[^/]+") do
-            table.insert(directories, directory)
+        local dirs = {}
+        for dir in abs_path:gmatch("[^/]+") do
+            table.insert(dirs, dir)
         end
-        return directories
+        return dirs
     end
 
     --- Validate object type
     ---@param abs_path string
-    ---@param mode string: "s" (string), "f" (file), "d" (directory), "t" (table), or "n" (number)
+    ---@param mode string: "s" (string), "f" (file), "d" (directory), "t" (metatable), or "n" (number)
     ---@return boolean result
     ---@return string|nil error
     ---@return table|nil path_table only if "f" or "d"
@@ -38,7 +38,7 @@ local filesystem = {}
 
         if mode == "t" then
             if type(abs_path) ~= "table" then
-                return false, "table expected, got " .. type(abs_path)
+                return false, "metatable expected, got " .. type(abs_path)
             end
             return true, nil, nil
         end
@@ -50,7 +50,7 @@ local filesystem = {}
             return true, nil, nil
         end
         
-        local path_table = filesystem.getPathTable(abs_path)
+        local path_table = filesystem.getPathMetatable(abs_path)
         if not path_table then
             return false, "File or directory does not exist"
         end
@@ -77,26 +77,47 @@ local filesystem = {}
         return file_path, file_name
     end
 
-    --entries is for the mock file system. replace once real fs is implemented
-    -- this and split path are needed for mock system. look at filesystem component api for details.
-    function filesystem.getPathTable(abs_path)
-        local path_table = disk["/"]
+    --- Gets the path table for a given absolute path.
+    --- @param abs_path string
+    --- @return table|nil path_table
+    function filesystem.getPathMetatable(abs_path)
+        local path_metatable = disk["/"]
         if abs_path == "/" then
-            return path_table
+            return path_metatable
         end
         local directories = filesystem.splitPath(abs_path)
         for _, directory in ipairs(directories) do
-            if not path_table or not path_table.entries or not path_table.entries[directory] then
+            if not path_metatable or not path_metatable.contents or not path_metatable.contents[directory] then
                 return nil
             end
-            path_table = path_table.entries[directory]
+            path_metatable = path_metatable.contents[directory]
         end
-        return path_table
+        return path_metatable
     end
 
-    function filesystem.open(absolute_path, mode)
-        local args = {absolute_path, mode}
+    function filesystem.getMntMetatable(mnt_disk, abs_path)
+        local path_metatable = mnt_disk["/"]
+        if abs_path == "/" then
+            return path_metatable
+        end
+        local directories = filesystem.splitPath(abs_path)
+        for _, directory in ipairs(directories) do
+            if not path_metatable or not path_metatable.contents or not path_metatable.contents[directory] then
+                return nil
+            end
+            path_metatable = path_metatable.contents[directory]
+        end
+        return path_metatable
+    end
+
+    --- Opens a file in the specified mode.
+    --- @param abs_path string
+    --- @param mode string "r" (read), "w" (write), "a" (append) 
+    --- @return table|nil file
+    --- @return string|nil error
+    function filesystem.open(abs_path, mode)
         
+        local args = {abs_path, mode}
         for _, arg in ipairs(args) do
             local ok, err = filesystem.validateType(arg, "s")
             if not ok then
@@ -106,155 +127,223 @@ local filesystem = {}
 
         if mode ~= "r" and mode ~= "w" and mode ~= "a" and mode ~= "rb" and mode ~= "wb" and mode ~= "ab" then
             local err = "bad argument (mode): invalid mode"
-            error(err)
+            return nil, err
         end
 
         -- Read mode, pulls file path and contents
         if mode == "r" or mode == "rb" then
-            local ok, err, path_table = filesystem.validateType(absolute_path, "f")
+            local ok, err, path_metatable = filesystem.validateType(abs_path, "f")
             if not ok then
-                error(err)
+                return nil, err
             end
-            return {table = path_table, mode = mode, position = 1}
+            return {
+                metatable = path_metatable,
+                mode = mode,
+                pos = 1
+                }
 
         -- Write mode, creates a new file or overwrites an existing one
         elseif mode == "w" or mode == "wb" then
-            local file_path, file_name = filesystem.validatePath(absolute_path)
-            local ok, err, parent_table = filesystem.validateType(file_path, "d")
+            local file_path, file_name = filesystem.validatePath(abs_path)
+            local ok, err, parent_metatable = filesystem.validateType(file_path, "d")
             if not ok then
-                error(err)
+                return nil, err
             end
-            parent_table.entries[file_name] = {type = "file", data = "", size = 0, modified = os.uptime()}
-            return {table = parent_table.entries[file_name], mode = mode, position = 1}
+            parent_metatable.contents[file_name] = {
+                type = "file",
+                data = "",
+                size = 0,
+                modified = os.uptime()
+            }
+            return {
+                metatable = parent_metatable.contents[file_name],
+                mode = mode,
+                pos = 1
+                }
 
         elseif mode == "a" or mode == "ab" then
-            local file_path, file_name = filesystem.validatePath(absolute_path)
-            local ok, err, parent_table = filesystem.validateType(file_path, "d")
+            local file_path, file_name = filesystem.validatePath(abs_path)
+            local ok, err, parent_metatable = filesystem.validateType(file_path, "d")
             if not ok then
-                error(err)
+                return nil, err
             end
 
-            if not parent_table.entries[file_name] or parent_table.entries[file_name].type ~= "file" then
-                parent_table.entries[file_name] = {type = "file", data = "", size = 0, modified = os.uptime()}
+            if not parent_metatable.contents[file_name] or parent_metatable.contents[file_name].type ~= "file" then
+                parent_metatable.contents[file_name] = {
+                    type = "file",
+                    data = "",
+                    size = 0,
+                    modified = os.uptime()
+                }
             end
-            local file = parent_table.entries[file_name]
-            return {table = file, mode = mode, position = #file.data + 1}
+            local file = parent_metatable.contents[file_name]
+            return {
+                    metatable = file,
+                    mode = mode,
+                    pos = #file.data + 1
+                }
         end
     end
 
-    function filesystem.read(file, index_position)
-        local ok, err = filesystem.validateType(file, "t")
-        if not ok then
-            return nil, error
+    -- Opens file metadata for reading
+    ---@param file_object table
+    ---@param index_pos number
+    ---@return string|nil data
+    ---@return string|nil error
+    function filesystem.read(file_object, index_pos)
+        if index_pos == nil then
+            index_pos = #file_object.metatable.data - (file_object.pos or 1) + 1
         end
 
-        local ok, err = filesystem.validateType(file.table, "f")
-        if not ok then
-            return nil, error
-        end
-
-        local file_data = file.table.data or ""
-        local position = file.position or 1
-        local file_length = #file_data
-
-        if not index_position then
-            index_position = file_length - position + 1
-        end
-
-        if position > file_length then
-            return "", "End of file reached"
-        end
-
-        local return_data = file_data:sub(position, position + index_position - 1)
-        file.position = position + #return_data
-        return return_data
-    end
-
-    --- Close an open file.
-    --- @param file table
-    --- @return boolean|nil result
-    --- @return string|nil error
-    function filesystem.close(file)
-        local ok, err = filesystem.validateType(file, "t")
+        local ok, err, _ = filesystem.validateType(file_object, "t")
         if not ok then
             return nil, err
         end
-        file.closed = true
-        if file.closed == true then
+
+        local ok, err, _ = filesystem.validateType(index_pos, "n")
+        if not ok then
+            return nil, err
+        end
+
+        local file_data = file_object.metatable.data
+        local pos = file_object.pos or 1
+        local file_length = #file_data
+
+        if not index_pos then
+            index_pos = file_length - pos + 1
+        end
+
+        if pos > file_length then
+            return "", "End of file reached"
+        end
+
+        local return_data = file_data:sub(pos, pos + index_pos - 1)
+        file_object.pos = pos + #return_data
+        return return_data
+    end
+
+    --- Write data to a file based on file index position.
+    --- @param file_object table
+    --- @param data string
+    --- @return boolean|nil result
+    --- @return string|nil error
+    function filesystem.write(file_object, data)
+        local args = {file_object, data}
+        local settings = {"t", "s"}
+
+        for i, arg in ipairs(args) do
+            local ok, err = filesystem.validateType(arg, settings[i])
+            if not ok then
+                return nil, err
+            end
+        end
+
+        file_object.metatable.data = file_object.metatable.data:sub(1, file_object.pos - 1)
+                        .. data
+                        .. file_object.metatable.data:sub(file_object.pos + #data)
+        file_object.pos = file_object.pos + #data
+        file_object.metatable.size = #file_object.metatable.data
+        file_object.metatable.modified = os.uptime()
+        return true, nil
+    end
+
+    --- Close an open file.
+    --- @param file_object table
+    --- @return boolean|nil result
+    --- @return string|nil error
+    function filesystem.close(file_object)
+        local ok, err = filesystem.validateType(file_object, "t")
+        if not ok then
+            return nil, err
+        end
+        file_object.closed = true
+        if file_object.closed == true then
             return true
         else
             return false, "unable to close file"
         end
     end
 
-    function filesystem.seek(file, position, reference_point)
-        local ok, err = filesystem.validateType(file, "t")
-        if not ok then
-            error(err)
-        end
-
-        local ok, err = filesystem.validateType(file.table, "f")
-        if not ok then
-            error(err)
-        end
-
-        local ok, err = filesystem.validateType(file.table, "n")
-        if not ok then
-            error(err)
-        end
-
-        reference_point = reference_point or "set"
-        local filesize = #file.table.data
-        local new_pos = file.position
-
-        if reference_point == "set" then
-            new_pos = position
-        elseif reference_point == "cur" then
-            new_pos = file.position + position
-        elseif reference_point == "end" then
-            new_pos = filesize + position
-        else
-            return nil, "bad argument (refernce_point): invalid value, must be set to 'set', 'cur', or 'end'"
-        end
-
-        if new_pos < 1 then
-            new_pos = 1
-        end
-        if new_pos > filesize then
-            new_pos = filesize
-        end
-        file.position = new_pos
-        return new_pos
-    end
-
-    function filesystem.exists(path)
-        local path_table = filesystem.getPathTable(path)
-        if path_table then
-            return true
-        else
-            return false
-        end
-    end
-
-    function filesystem.list(path)
-        local ok, err, directory = filesystem.validateType(path, "d")
+    --- Moves the file cursor to specified position.
+    --- @param file_object table
+    --- @param pos number
+    --- @param mode string "set"(from beginning), "cur" (from file pos), "end")
+    function filesystem.seek(file_object, pos, mode)
+        local ok, err = filesystem.validateType(file_object, "t")
         if not ok then
             return nil, err
         end
 
-        local locations = {}
-        for name in pairs(directory.entries) do
-            table.insert(locations, name)
+        local ok, err = filesystem.validateType(pos, "n")
+        if not ok then
+            return nil, err
         end
-        return locations, nil
+
+        mode = mode or "set"
+        local filesize = #file_object.metatable.data
+        local file_pos = file_object.pos
+        print("File size:", filesize, "Current position:", file_pos, "Seek position:", pos, "Mode:", mode)
+
+        if mode == "set" then
+            file_pos = pos
+        elseif mode == "cur" then
+            file_pos = file_object.pos + pos
+        elseif mode == "end" then
+            file_pos = filesize + pos
+        else
+            return nil, "bad argument (refernce_point): invalid value, must be set to 'set', 'cur', or 'end'"
+        end
+
+        if file_pos < 1 then
+            file_pos = 1
+        end
+        if file_pos > filesize then
+            file_pos = filesize
+        end
+        file_object.pos = file_pos
+        return file_pos
     end
 
-    function filesystem.isDirectory(path)
-        local real_path = filesystem.getPathTable(path)
-        if real_path and real_path.type == "dir" then
+    -- Check if a file or directory exists.
+    --- @param path string
+    --- @return boolean result
+    function filesystem.exists(path)
+        local path_metatable = filesystem.getPathMetatable(path)
+        if path_metatable then
             return true
         else
             return false
+        end
+    end
+
+    -- List contents of a directory.
+    --- @param path string
+    --- @return table|nil contents
+    --- @return string|nil error
+    function filesystem.list(path)
+        local ok, err, dir = filesystem.validateType(path, "d")
+        if not ok then
+            return nil, err
+        end
+
+        local contents = {}
+        for name in pairs(dir.contents) do
+            if dir.contents[name] ~= nil then
+                table.insert(contents, name)
+            end
+        end
+        return contents, nil
+    end
+
+    --- Check if a path is a directory.
+    --- @param path string
+    --- @return boolean result
+    function filesystem.isDirectory(path)
+        local ok, _, _ = filesystem.validateType(path, "d")
+        if not ok then
+            return false
+        else
+            return true
         end
     end
 
@@ -269,224 +358,229 @@ local filesystem = {}
 
         local parent_path, dir_name = filesystem.validatePath(path)
 
-        local ok, err, parent_table = filesystem.validateType(parent_path, "d")
+        local ok, err, parent_metatable = filesystem.validateType(parent_path, "d")
         if not ok then
-            error(err)
+            return nil, err
         end
 
-        if parent_table.entries[dir_name] then
+        if parent_metatable.contents[dir_name] then
             return nil, "Directory already exists"
         end
 
-        parent_table.entries[dir_name] = {
+        parent_metatable.contents[dir_name] = {
             type = "dir",
-            entries = {},
+            contents = {},
             modified = os.uptime()
         }
         return true, nil
     end
 
-    local function recursionCopy(copy_directory)
-        if copy_directory.type == "dir" then
+    --- Recursively copy a file or directory to a new location.
+    --- @param copy_dir table
+    --- @return table
+    local function recursionCopy(copy_dir)
+        if copy_dir.type == "dir" then
             local new_directory = {
                                     type = "dir",
-                                    entries = {}
+                                    contents = {}
                                     }
-            for directory, file in pairs(copy_directory.entries) do
-                new_directory.entries[directory] = recursionCopy(file)
+            for directory, file in pairs(copy_dir.contents) do
+                new_directory.contents[directory] = recursionCopy(file)
             end
             return new_directory
-        elseif copy_directory.type == "file" then
+        elseif copy_dir.type == "file" then
             return {
                 type = "file",
-                data = copy_directory.data,
-                size = copy_directory.size,
-                modified = copy_directory.modified
+                data = copy_dir.data,
+                size = copy_dir.size,
+                modified = copy_dir.modified
             }
         end
     end
-
-    function filesystem.recursionRemove(target_directory)
-        if type(target_directory) ~= "string" or target_directory == "" then
-            return nil, "bad argument (target_directory): directory expected"
-        end
-
-        local parent_path, name = filesystem.validatePath(target_directory)
-
-        local ok, err, parent = filesystem.validateType(parent_path, "d")
+    
+    --- Copy a file or directory to a new location.
+    --- @param origin_path string
+    --- @param destination_path string
+    --- @return boolean|nil success
+    --- @return string|nil error
+    function filesystem.copy(origin_path, destination_path)
+        local ok, err, origin_metatable = filesystem.validateType(origin_path, "f")
         if not ok then
-            error(err)
-        end
-
-        local target = parent.entries[name]
-        if not target then
-            return nil, "bad argument (target_directory): directory does not exist"
-        end
-
-        if target.type == "dir" then
-            for child_name in pairs(target.entries) do
-                filesystem.recursionRemove(target_directory .. "/" .. child_name)
-            end
-        end
-
-        parent.entries[name] = nil
-        return true
-    end
-
-    function filesystem.copy(source, destination)
-        
-        local source_file = filesystem.getPathTable(source)
-        if not source_file or source_file.type ~= "file" and source_file.type ~= "dir" then
-            error("bad argument (source): does not exist")
-        end
-
-        if source_file.type == "dir" and destination:sub(1, #source) == source then
-            error("bad argument (destination): cannot copy self")
-        end
-
-        local destination_parent_path, destination_name = filesystem.validatePath(destination)
-
-        local ok, err, destination_parent_table = filesystem.validateType(destination_parent_path, "d")
-        if not ok then
-            error(err)
-        end
-
-        if destination_parent_table.entries[destination_name] then
-            error("bad argument (destination): file already exists")
-        end
-
-        destination_parent_table.entries[destination_name] = recursionCopy(source_file)
-        return true
-    end
-
-    function filesystem.move(origin, destination)
-        local settings = {"f", "d"}
-        local results = {}
-        local ok, err, origin_table
-        for _, setting in ipairs(settings) do
-            ok, err, origin_table = filesystem.validateType(origin, setting)
+            ok, err, origin_metatable = filesystem.validateType(origin_path, "d")
             if not ok then
-                table.insert(results, err)
+                return nil, "bad argument (origin): does not exist"
             end
         end
 
-        if #results == #settings then
-            return nil, "bad argument (origin): does not exist"
+        if origin_metatable.type == "dir" and destination_path:sub(1, #origin_path) == origin_path then
+            return nil, "bad argument (destination): cannot copy self"
         end
 
-        if origin_table.type == "dir" and destination:sub(1, #origin) == origin then 
-            return nil, "bad argument (destination): cannot move self"
-        end
-
-        local _, origin_name = filesystem.validatePath(origin)
-
-        if not origin_table or origin_table.type ~= "dir" then
-            return nil, "bad argument (origin): directory does not exist"
-        end
-        if origin_table.entries[origin_name] then
-            return nil, "bad argument (origin): file already exists"
-        end
-
-        local destination_parent_path, destination_name = filesystem.validatePath(destination)
-
-        local ok, err, destination_table = filesystem.validateType(destination_parent_path, "d")
+        local destination_path, destination_name = filesystem.validatePath(destination_path)
+        local ok, err, destination_metatable = filesystem.validateType(destination_path, "d")
         if not ok then
-            error(err)
+            return nil, err
         end
 
-        if destination_table.entries[destination_name] then
+        if destination_metatable.contents[destination_name] then
             return nil, "bad argument (destination): file already exists"
         end
 
-        destination_table.entries[destination_name] = origin_table.entries[origin_name]
-        origin_table.entries[origin_name] = nil
-
+        destination_metatable.contents[destination_name] = recursionCopy(origin_metatable)
         return true
     end
 
-    function filesystem.remove(path)
-        if type(path) ~= "string" or path == "" or path == "/" then
+    --- Move a file or directory to a new location.
+    --- @param origin_path string
+    --- @param destination_path string
+    --- @return boolean success
+    --- @return string|nil error
+    function filesystem.move(origin_path, destination_path)
+        local ok, err = filesystem.copy(origin_path, destination_path)
+        if not ok then
+            return false, err
+        end
+        local ok, err = filesystem.removeRecursive(origin_path)
+        if not ok then
+            return false, err
+        end
+        return true
+    end
+
+    --- Recursively remove a directory and its contents.
+    --- @param abs_path string
+    --- @return boolean|nil success
+    --- @return string|nil err
+    function filesystem.removeRecursive(abs_path)
+        if type(abs_path) ~= "string" or abs_path == "" or abs_path == "/" then
             return nil, "bad argument (path): invalid path"
         end
 
-        local parent_path, name = filesystem.validatePath(path)
+        local modded_path = abs_path:gsub("/+$", "")
+        local parent_path, name = filesystem.validatePath(modded_path)
+        local parent_metatable = filesystem.getPathMetatable(parent_path)
 
-        local ok, err, parent_table = filesystem.getPathTable(parent_path)
-        if not ok then
-            error(err)
+        if not parent_metatable or not parent_metatable.contents[name] then
+            return nil, "bad argument (path): parent directory does not exist"
         end
 
-        if not parent.entries[name] then
+        if not parent_metatable.contents[name] then
             return nil, "bad argument (path): file or directory does not exist"
         end
 
-        parent_table.entries[name] = nil
+        parent_metatable.contents[name] = nil
         return true
     end
 
-    function filesystem.getSize(path)
-        local structure = filesystem.getPathTable(path)
-        if not structure then
+
+    --- Remove a file or directory.
+    --- @param abs_path string
+    --- @return boolean|nil success
+    --- @return string|nil err
+    function filesystem.remove(abs_path)
+        if type(abs_path) ~= "string" or abs_path == "" or abs_path == "/" then
+            return nil, "bad argument (path): invalid path"
+        end
+
+        local modded_path = abs_path:gsub("/+$", "")
+        local parent_path, name = filesystem.validatePath(modded_path)
+        local parent_metatable = filesystem.getPathMetatable(parent_path)
+
+        if not parent_metatable or not parent_metatable.contents[name] then
+            return nil, "bad argument (path): parent directory does not exist"
+        end
+
+        if not parent_metatable.contents[name] then
             return nil, "bad argument (path): file or directory does not exist"
         end
 
-        if structure.type == "file" then
-            return #structure.data
-        elseif structure.type == "dir" then
+        local target_metatable = filesystem.getPathMetatable(modded_path)
+
+        if target_metatable.contents and next(target_metatable.contents) then
+            return nil, "error: directory not empty"
+        end
+
+        parent_metatable.contents[name] = nil
+        return true
+    end
+
+    -- Get the size of a file or directory.
+    --- @param abs_path string
+    --- @return number|nil size
+    --- @return string|nil err
+    function filesystem.getSize(abs_path)
+        local file_metatable = filesystem.getPathMetatable(abs_path)
+        if not file_metatable then
+            return nil, "bad argument (path): file or directory does not exist"
+        end
+
+        if file_metatable.type == "file" then
+            return #file_metatable.data
+        elseif file_metatable.type == "dir" then
             return 0, "bad argument (path): cannot get size of directory"
         else
             return nil, "bad argument (path): invalid type"
         end
     end
 
-    function filesystem.mount(source, target)
-        if type(source) ~= "table" then
-            return nil, "bad argument (source): must be a table (disk/storage device)"
-        end
-        if type(target) ~= "string" or target == "" or target == "/" then
-            return nil, "bad argument (target): must be a string (mount point)"
-        end
-
-        local parent_path, entry_name = filesystem.validatePath(target)
-
-        local ok, err, parent_table = filesystem.getPathTable(parent_path)
-        if not ok then
-            return nil, err
+    --- Mount a disk to a mount point. NOT SET UP FOR REAL HARDWARE
+    --- @param disk_to_mnt table
+    --- @return string|nil mnt_address
+    --- @return string|nil err
+    function filesystem.mount(disk_to_mnt)
+        local mnt_metatable = filesystem.getPathMetatable("/mnt")
+        if not mnt_metatable then
+            filesystem.makeDirectory("/mnt")
+            mnt_metatable = filesystem.getPathMetatable("/mnt")
         end
 
-        if parent_table.entries[entry_name] then
-            return nil, "bad argument (target): mount point already exists"
+        local tries = 0
+        local mnt_name
+        repeat
+            mnt_name = tostring(string.char(math.random(97, 122)) .. math.floor(math.random(10, 99)))
+            tries = tries + 1
+        until not mnt_metatable.contents[mnt_name] or tries > 100
+
+        if tries > 100 then
+            return nil, "Unable to create mount with unique name"
         end
 
-        parent_table.entries[entry_name] = source
+        local mnt_disk_metatable = filesystem.getMntMetatable(disk_to_mnt, "/")
 
-        return true
+        mnt_metatable.contents[mnt_name] = mnt_disk_metatable
+        local mnt_addr = "/mnt/" .. mnt_name
+
+        return mnt_addr
     end
 
-    function filesystem.unmount(target)
-        if type(target) ~= "string" or target == "" or target == "/" then
+    --- Unmount a disk from a mount point.
+    --- @param abs_path string
+    --- @return boolean|nil success
+    --- @return string|nil err
+    function filesystem.unmount(abs_path)
+        if type(abs_path) ~= "string" or abs_path == "" or abs_path == "/" then
             return nil, "bad argument (target): must be valid path"
         end
 
-        local parent_path, entry_name = filesystem.validatePath(target)
-
-        local ok, err, parent_table = filesystem.getPathTable(parent_path)
-        if not ok then
-            return nil, err
-        end
-
-        if not parent_table.entries[entry_name] then
+        local parent_path, entry_name = filesystem.validatePath(abs_path)
+        local parent_metatable = filesystem.getPathMetatable(parent_path)
+    
+        if not parent_metatable.contents[entry_name] then
             return nil, "bad argument (target): mount point does not exist"
         end
 
-        parent_table.entries[entry_name] = nil
+        parent_metatable.contents[entry_name] = nil
         return true
     end
 
-    function filesystem.tempfile()
-        local ok, err, temp_path = filesystem.getPathTable("/tmp")
-        if not ok then
-            error(err)
+    --- Generates temp file with random name
+    --- @return string|nil temp_file_path
+    --- @return string|nil err
+    function filesystem.tempFile()
+        local temp_metatable = filesystem.getPathMetatable("/tmp")
+        if not temp_metatable then
+            filesystem.makeDirectory("/tmp")
+            temp_metatable = filesystem.getPathMetatable("/tmp")
         end
 
         local tries = 0
@@ -494,14 +588,14 @@ local filesystem = {}
         repeat
             temp_file_name = "tmp_" .. tostring(os.uptime()) .. "_" .. tostring(math.random(1000, 9999))
             tries = tries + 1
-        until not temp_path.entries[temp_file_name] or tries > 100
+        until not temp_metatable.contents[temp_file_name] or tries > 100
 
         if tries > 100 then
             return nil, "Unable to create temporary file with unique name"
         end
 
-        temp_path.entries[temp_file_name] = { 
-            type = "file", 
+        temp_metatable.contents[temp_file_name] = {
+            type = "file",
             data = "",
             size = 0,
             modified = os.uptime()
@@ -509,15 +603,14 @@ local filesystem = {}
         return "/tmp/" .. temp_file_name
     end
         
-
+    --- Combines two file paths, ensures only one "/" between the two
+    --- @param file_path_1 string
+    --- @param file_path_2 string
+    --- @return string|nil new_file_path
+    --- @return string|nil err
     function filesystem.concat(file_path_1, file_path_2)
-       if type(file_path_1) ~= "string" then
-            return nil, "bad argument (file_path_1): must be a string"
-        end
-
-        if type(file_path_2) ~= "string" then
-            return nil, "bad argument (file_path_2): must be a string"
-        end
+       assert(type(file_path_1) == "string", "string expected, got " .. type(file_path_1))
+       assert(type(file_path_2) == "string", "string expected, got " .. type(file_path_2))
 
         local path_1 = file_path_1:gsub("/+$", "")
         local path_2 = file_path_2:gsub("^/+", "")
