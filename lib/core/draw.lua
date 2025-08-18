@@ -22,6 +22,7 @@ local draw = {}
         gpu.setForeground(WHITE)
         gpu.setBackground(BLACK)
         gpu.fill(1, 1, width, height, " ")
+        cursor:reset()
     end
 
     --- Renders a string at specified coordinates at the specified color
@@ -54,16 +55,16 @@ local draw = {}
         return color
     end
 
-    -- Renders text in a terminal fashion, line by line. Does not permanently modify the cursor.
+    -- Renders text in a terminal fashion, line by line
     ---@param input_str string
-    ---@param x_pos number
-    ---@param y_pos number
-    ---@param foreground number hex only, use render.getRGB() white default
-    ---@param background number hex only, use render.getRGB() black default
+    ---@param x_pos number|nil
+    ---@param y_pos number|nil
+    ---@param foreground number|nil hex only, use render.getRGB() white default
+    ---@param background number|nil hex only, use render.getRGB() black default
     function draw.termText(input_str, x_pos, y_pos, foreground, background)
         local x_home = x_pos or cursor:getX()
         local y_home = y_pos or cursor:getHomeY()
-        local width, _ = gpu.getResolution()
+        draw.updateResolution()
         local foreground = foreground or WHITE
         local background = background or BLACK
         gpu.setForeground(foreground)

@@ -3,7 +3,7 @@
 -- File metatables not to be confused with Lua object metatables
 -- Contents are located in (file or dir).metatable.content
 
-local disk = _G.disk or require("disk") -- Fake filesystem
+local disk = _G.OS_FILESYSTEM
 local os = require("os")
 
 local filesystem = {}
@@ -77,6 +77,7 @@ local filesystem = {}
         return file_path, file_name
     end
 
+    --- SLATED FOR DELETION PENDING REAL FILESYSTEM INTEGRATION
     --- Gets the path table for a given absolute path.
     --- @param abs_path string
     --- @return table|nil path_table
@@ -95,6 +96,7 @@ local filesystem = {}
         return path_metatable
     end
 
+    --- SLATED FOR DELETION PENDING REAL FILESYSTEM INTEGRATION
     function filesystem.getMntMetatable(mnt_disk, abs_path)
         local path_metatable = mnt_disk["/"]
         if abs_path == "/" then

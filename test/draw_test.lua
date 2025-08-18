@@ -28,7 +28,8 @@ while true do
     end
     local lineweight = math.random(0, end_xy)
     draw.clear()
-    draw.termText("HELLO WORLD", x, y, forecolor, backcolor)
+    gpu.setBackground(backcolor)
+    gpu.fill(1, 1, width, height, " ")
     x = x + 1
     if x >= width then
         x = 1

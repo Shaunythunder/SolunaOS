@@ -26,4 +26,4 @@ end
 
 print("SolunaOS initializing...")
 
-dofile("test/display_test.lua")
+dofile("test/real_fstest.lua")

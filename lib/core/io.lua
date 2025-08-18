@@ -2,7 +2,10 @@
 -- This module provides functions for input and output operations.
 
 local cursor = _G.cursor
+local fps = _G.fps
 local text_buffer = require("text_buffer")
+local os = require("os")
+local draw = require("draw")
 
 local event = _G.event
 local keyboard = _G.keyboard
@@ -12,64 +15,41 @@ local WHITE = 0xFFFFFF
 
 local io = {}
 
-    function io.calcWrap(prepend_text, string)
-        local string_index = 1 + #prepend_text
-        local wrap_index = 1
-        local width, _ = gpu.getResolution()
-        for character in string:gmatch(".") do
-            string_index = string_index + 1
-            if string_index > width then
-                string_index = 1
-                wrap_index = wrap_index + 1
-            end
-        end
-        return wrap_index
+    function io.write(...)
+        local args = {...}
+        cursor:setHomeY(cursor:getY() + 1)
+        cursor:setPosition(cursor:getX(), cursor:getY())
+        local output = table.concat(args, " ")
+        draw.termText(output)
     end
 
-    function io.liveRender(input_str)
-        local width, _ = gpu.getResolution()
-        gpu.setForeground(WHITE)
-        gpu.setBackground(BLACK)
+    function io.writeBuffered(scroll_buffer, ...)
+        local args = {...}
+        local output = table.concat(args, " ")
+        scroll_buffer:addLine(output)
         
-        local lines = {}
-        for newline in tostring(input_str):gmatch("([^\n]*)\n?") do
-            table.insert(lines, newline)
-        end
-
-        local cursor_y = cursor:getY()
-        local last_x = 1
-        local last_y = cursor_y
-
-        for i, line_text in ipairs(lines) do
-            local string_length = #line_text
-            while string_length > width do
-                local line = line_text:sub(1, width)
-                gpu.fill(1, last_y, width, 1, " ")
-                gpu.set(1, last_y, line)
-                cursor:movePosition(0, 1)
-                cursor_y = cursor_y + 1
-                line_text = line_text:sub(width + 1)
-                string_length = #line_text
+        local width, height = gpu.getResolution()
+        local visible_lines = scroll_buffer:getVisibleLines()
+        if #visible_lines >= height then
+            draw.clear()
+            for line = 1, height - 1 do
+                if visible_lines[line + 1] then
+                    draw.termText(visible_lines[line + 1], 1, line)
+                end
             end
-            gpu.fill(1, cursor_y, width, 1, " ")
-            gpu.set(1, cursor_y, line_text)
-            last_x = (#line_text % width) + 1
-            last_y = cursor_y
-            cursor_y = cursor_y + 1
+            draw.termText(output, 1, height)
+        else
+            draw.termText(output, 1, #visible_lines)
         end
-        cursor:setPosition(last_x, last_y)
-    end
-
-    function io.write(input_str)
-        io.liveRender(input_str)
-        cursor:setHomeY(cursor:getY())
-        local home_y = cursor:getHomeY()
-        cursor:setPosition(1, home_y)
+        local cursor_y = math.min(#visible_lines + 1, height)
+        cursor:setHomeY(cursor_y)
+        cursor:setPosition(1, cursor_y)
+        os.sleep(fps) -- Allow time for rendering
     end
 
     function io.read(prompt)
         local prepend_text = prompt or ""
-        io.write(prepend_text)
+        draw.termText(prepend_text, #prepend_text, cursor:getHomeY())
         local input_buffer = text_buffer.new()
         while true do
             local character = nil
@@ -87,18 +67,8 @@ local io = {}
             end
             if character == "\n" then
                 cursor:hide()
-                local wraps = io.calcWrap(prepend_text, input_buffer:getText())
-                local new_y = cursor:getHomeY()
-                if wraps > 0 then
-                    new_y = cursor:getHomeY() + wraps
-                else
-                    new_y = cursor:getHomeY() + 1
-                end
-                cursor:setHomeY(new_y)
-                cursor:setPosition(1, new_y)
-                local string = prepend_text .. input_buffer:getText()
-                io.write(string)
-                break
+                local string = input_buffer:getText()
+                return string
             elseif character == "\t" then
                 input_buffer:insert("    ")
             elseif character == "\b" then
@@ -107,23 +77,16 @@ local io = {}
                 input_buffer:delete()
             elseif character == "<-" then
                 input_buffer:moveLeft()
-                cursor:setPosition(input_buffer:getPosition(), cursor:getHomeY())
             elseif character == "->" then
                 input_buffer:moveRight()
-                cursor:setPosition(input_buffer:getPosition(), cursor:getHomeY())
             elseif #character == 1 then
                 input_buffer:insert(character)
             end
             local string = prepend_text .. input_buffer:getText()
-            cursor:setPosition(1, cursor:getHomeY())
-            io.liveRender(string)
+            draw.termText(string, 1, cursor:getHomeY())
+            local cursor_x = #prepend_text + input_buffer:getPosition()
+            cursor:setPosition(cursor_x, cursor:getHomeY())
         end
-    end
-
-    function io.clear()
-        local width, height = gpu.getResolution()
-        gpu.fill(1, 1, width, height, " ")
-        cursor:setPosition(1, 1)
     end
 
 return io
