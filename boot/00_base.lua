@@ -3,7 +3,7 @@
 --- Temp print function to test rudimentary CLI
 --- @param ... any -- Values to print.
 --- @return nil
-_G.print = function(...)
+_G.bootPrint = function(...)
     local gpu = _G.primary_gpu
     local screen_addr = _G.primary_screen_addr
     local args = {...}

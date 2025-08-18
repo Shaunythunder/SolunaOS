@@ -1,44 +1,16 @@
 -- /lib/core/io.lua
 -- This module provides functions for input and output operations.
 
-local Cursor = require("cursor")
+local cursor = _G.cursor
 local text_buffer = require("text_buffer")
 
 local event = _G.event
 local keyboard = _G.keyboard
 local gpu = _G.primary_gpu
-local cursor = Cursor.new()
-
 local BLACK = 0x000000
 local WHITE = 0xFFFFFF
 
 local io = {}
-
-    function io.write(input_str)
-        local string_length = #input_str
-        local lines = {}
-        local width, _ = gpu.getResolution()
-        gpu.setForeground(WHITE)
-        gpu.setBackground(BLACK)
-        while string_length > width do
-            local line = input_str:sub(1, width)
-            table.insert(lines, line)
-            input_str = input_str:sub(width + 1)
-            string_length = #input_str
-        end
-        table.insert(lines, input_str)
-        for _, line in ipairs(lines) do
-            gpu.fill(cursor:getX(), cursor:getY(), width, 1, " ")
-            gpu.set(cursor:getX(), cursor:getY(), line)
-            cursor:movePosition(0, 1)
-        end
-        local cursor_x = (string_length % width) + 1
-        local cursor_y = cursor:getY()
-        if string_length % width == 0 then
-            cursor_y = cursor_y + 1
-        end
-        cursor:setPosition(cursor_x, cursor_y - 1)
-    end
 
     function io.calcWrap(prepend_text, string)
         local string_index = 1 + #prepend_text
@@ -52,6 +24,47 @@ local io = {}
             end
         end
         return wrap_index
+    end
+
+    function io.liveRender(input_str)
+        local width, _ = gpu.getResolution()
+        gpu.setForeground(WHITE)
+        gpu.setBackground(BLACK)
+        
+        local lines = {}
+        for newline in tostring(input_str):gmatch("([^\n]*)\n?") do
+            table.insert(lines, newline)
+        end
+
+        local cursor_y = cursor:getY()
+        local last_x = 1
+        local last_y = cursor_y
+
+        for i, line_text in ipairs(lines) do
+            local string_length = #line_text
+            while string_length > width do
+                local line = line_text:sub(1, width)
+                gpu.fill(1, last_y, width, 1, " ")
+                gpu.set(1, last_y, line)
+                cursor:movePosition(0, 1)
+                cursor_y = cursor_y + 1
+                line_text = line_text:sub(width + 1)
+                string_length = #line_text
+            end
+            gpu.fill(1, cursor_y, width, 1, " ")
+            gpu.set(1, cursor_y, line_text)
+            last_x = (#line_text % width) + 1
+            last_y = cursor_y
+            cursor_y = cursor_y + 1
+        end
+        cursor:setPosition(last_x, last_y)
+    end
+
+    function io.write(input_str)
+        io.liveRender(input_str)
+        cursor:setHomeY(cursor:getY())
+        local home_y = cursor:getHomeY()
+        cursor:setPosition(1, home_y)
     end
 
     function io.read(prompt)
@@ -83,6 +96,8 @@ local io = {}
                 end
                 cursor:setHomeY(new_y)
                 cursor:setPosition(1, new_y)
+                local string = prepend_text .. input_buffer:getText()
+                io.write(string)
                 break
             elseif character == "\t" then
                 input_buffer:insert("    ")
@@ -101,10 +116,8 @@ local io = {}
             end
             local string = prepend_text .. input_buffer:getText()
             cursor:setPosition(1, cursor:getHomeY())
-            io.write(string)
+            io.liveRender(string)
         end
-        cursor:hide()
-        return input_buffer:getText()
     end
 
     function io.clear()
