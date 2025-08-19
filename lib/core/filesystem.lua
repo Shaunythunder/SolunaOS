@@ -163,7 +163,7 @@ local filesystem = {}
 
     -- Opens file metadata for reading
     ---@param file_object table
-    ---@param index_pos number
+    ---@param index_pos number|nil
     ---@return string|nil data
     ---@return string|nil error
     function filesystem.read(file_object, index_pos)
