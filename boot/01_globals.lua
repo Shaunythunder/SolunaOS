@@ -12,16 +12,17 @@ local Cursor = require("cursor")
 local cursor = Cursor.new()
 _G.cursor = cursor
 
-local render = require("render")
+local io = require("io")
 
 _G._print_y = nil -- cleanup
 _G.bootPrint = nil -- cleanup
 --
-_G.print = function (...)
-    cursor:setHomeY(cursor:getY() + 1)
-    cursor:setPosition(cursor:getX(), cursor:getY())
-    local out = table.concat({...}, " ")
-    render.termText(out)
+_G.print = function(...)
+    local args = {...}
+    for i = 1, #args do
+        args[i] = tostring(args[i])
+    end
+    io.write(table.unpack(args))
 end
 
 print("SolunaOS initializing...")

@@ -181,13 +181,28 @@ local scrollBuffer = {}
     -- Adds new line to terminal buffer with option logging feature
     ---@param line string
     function scrollBuffer:addLine(line)
-        table.insert(self.buffer_lines, line)
+        local width, _ = gpu.getResolution()
+        local lines_added = 0
+
+        while #line > 0 do
+        if #line > width then
+            local wrapped_line = line:sub(1, width)
+            table.insert(self.buffer_lines, wrapped_line)
+            line = line:sub(width + 1)
+            lines_added = lines_added + 1
+        else
+            table.insert(self.buffer_lines, line)
+            lines_added = lines_added + 1
+            break
+        end
+    end
         self:updateMaxLines()
         self:removeOldLines()
         self:scrollToBottom()
         if self.logging and self.log_file_path then
             self:exportLine(self.log_file_path, line)
         end
+        return lines_added
     end
 
 return scrollBuffer

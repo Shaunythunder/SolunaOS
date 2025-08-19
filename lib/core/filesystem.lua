@@ -3,7 +3,7 @@
 -- File metatables not to be confused with Lua object metatables
 -- Contents are located in (file or dir).metatable.content
 
-local disk = _G.OS_FILESYSTEM
+local OS_FILESYSTEM = _G.OS_FILESYSTEM
 local os = require("os")
 
 local filesystem = {}
@@ -19,12 +19,22 @@ local filesystem = {}
         return dirs
     end
 
+    function filesystem.validateObject(file_object)
+        local ok, err = filesystem.validateType(file_object, "t")
+        if not ok then
+            return false, err
+        end
+        if not file_object.handle or not file_object.hardware_component then
+            return false, "invalid file_object"
+        end
+        return true, nil
+    end
+
     --- Validate object type
     ---@param abs_path string
     ---@param mode string: "s" (string), "f" (file), "d" (directory), "t" (metatable), or "n" (number)
     ---@return boolean result
     ---@return string|nil error
-    ---@return table|nil path_table only if "f" or "d"
     function filesystem.validateType(abs_path, mode)
         if mode ~= "s" and mode ~= "f" and mode ~= "d" and mode ~= "t" and mode ~= "n" then
             return false, "bad argument (mode): invalid mode, must be 's', 'f', 'd', 't', or 'n'"
@@ -33,33 +43,32 @@ local filesystem = {}
             if type(abs_path) ~= "number" then
                 return false, "number expected, got " .. type(abs_path)
             end
-            return true, nil, nil
+            return true, nil
         end
 
         if mode == "t" then
             if type(abs_path) ~= "table" then
                 return false, "metatable expected, got " .. type(abs_path)
             end
-            return true, nil, nil
+            return true, nil
         end
 
         if type(abs_path) ~= "string" then
             return false, "string expected, got " .. type(abs_path)
         end
         if mode == "s" then
-            return true, nil, nil
+            return true, nil
         end
         
-        local path_table = filesystem.getPathMetatable(abs_path)
-        if not path_table then
+        if not OS_FILESYSTEM.exists(abs_path) then
             return false, "File or directory does not exist"
         end
-        if mode == "f" and path_table.type ~= "file" then
-            return false, "File expected, got " .. path_table.type
-        elseif mode == "d" and path_table.type ~= "dir" then
-            return false, "Directory expected, got " .. path_table.type
+        if mode == "f" and OS_FILESYSTEM.isDirectory(abs_path) then
+            return false, "File expected, got directory"
+        elseif mode == "d" and not OS_FILESYSTEM.isDirectory(abs_path) then
+            return false, "Directory expected, got file"
         end
-        return true, nil, path_table
+        return true, nil
     end
 
     --- Converts absolute path to relative path and file name
@@ -134,57 +143,22 @@ local filesystem = {}
 
         -- Read mode, pulls file path and contents
         if mode == "r" or mode == "rb" then
-            local ok, err, path_metatable = filesystem.validateType(abs_path, "f")
+            local ok, err = filesystem.validateType(abs_path, "f")
             if not ok then
                 return nil, err
             end
-            return {
-                metatable = path_metatable,
-                mode = mode,
-                pos = 1
-                }
-
-        -- Write mode, creates a new file or overwrites an existing one
-        elseif mode == "w" or mode == "wb" then
-            local file_path, file_name = filesystem.validatePath(abs_path)
-            local ok, err, parent_metatable = filesystem.validateType(file_path, "d")
-            if not ok then
-                return nil, err
-            end
-            parent_metatable.contents[file_name] = {
-                type = "file",
-                data = "",
-                size = 0,
-                modified = os.uptime()
-            }
-            return {
-                metatable = parent_metatable.contents[file_name],
-                mode = mode,
-                pos = 1
-                }
-
-        elseif mode == "a" or mode == "ab" then
-            local file_path, file_name = filesystem.validatePath(abs_path)
-            local ok, err, parent_metatable = filesystem.validateType(file_path, "d")
-            if not ok then
-                return nil, err
-            end
-
-            if not parent_metatable.contents[file_name] or parent_metatable.contents[file_name].type ~= "file" then
-                parent_metatable.contents[file_name] = {
-                    type = "file",
-                    data = "",
-                    size = 0,
-                    modified = os.uptime()
-                }
-            end
-            local file = parent_metatable.contents[file_name]
-            return {
-                    metatable = file,
-                    mode = mode,
-                    pos = #file.data + 1
-                }
         end
+
+        local handle = OS_FILESYSTEM.open(abs_path, mode)
+        if not handle then
+            return nil, "Failed to open file: " .. abs_path
+        end
+
+        return {
+            handle = handle,
+            mode = mode,
+            hardware_component = OS_FILESYSTEM
+        }
     end
 
     -- Opens file metadata for reading
@@ -193,35 +167,27 @@ local filesystem = {}
     ---@return string|nil data
     ---@return string|nil error
     function filesystem.read(file_object, index_pos)
+        local ok, err = filesystem.validateObject(file_object)
+        if not ok then
+            return nil, err
+        end
+
         if index_pos == nil then
-            index_pos = #file_object.metatable.data - (file_object.pos or 1) + 1
+            index_pos = math.huge
+        else
+            local ok, err = filesystem.validateType(index_pos, "n")
+            if not ok then
+                return nil, err
+            end
         end
 
-        local ok, err, _ = filesystem.validateType(file_object, "t")
-        if not ok then
-            return nil, err
-        end
+        local data = file_object.hardware_component.read(file_object.handle, index_pos)
 
-        local ok, err, _ = filesystem.validateType(index_pos, "n")
-        if not ok then
-            return nil, err
-        end
-
-        local file_data = file_object.metatable.data
-        local pos = file_object.pos or 1
-        local file_length = #file_data
-
-        if not index_pos then
-            index_pos = file_length - pos + 1
-        end
-
-        if pos > file_length then
+        if data == nil then
             return "", "End of file reached"
         end
 
-        local return_data = file_data:sub(pos, pos + index_pos - 1)
-        file_object.pos = pos + #return_data
-        return return_data
+        return data, nil
     end
 
     --- Write data to a file based on file index position.
@@ -230,22 +196,22 @@ local filesystem = {}
     --- @return boolean|nil result
     --- @return string|nil error
     function filesystem.write(file_object, data)
-        local args = {file_object, data}
-        local settings = {"t", "s"}
-
-        for i, arg in ipairs(args) do
-            local ok, err = filesystem.validateType(arg, settings[i])
-            if not ok then
-                return nil, err
-            end
+        local ok, err = filesystem.validateObject(file_object)
+        if not ok then
+            return nil, err
         end
 
-        file_object.metatable.data = file_object.metatable.data:sub(1, file_object.pos - 1)
-                        .. data
-                        .. file_object.metatable.data:sub(file_object.pos + #data)
-        file_object.pos = file_object.pos + #data
-        file_object.metatable.size = #file_object.metatable.data
-        file_object.metatable.modified = os.uptime()
+        local ok, err = filesystem.validateType(data, "s")
+        if not ok then
+            return nil, err
+        end
+
+        local success = file_object.hardware_component.write(file_object.handle, data)
+
+        if not success then
+            return nil, "Failed to write data to file"
+        end
+
         return true, nil
     end
 
@@ -254,24 +220,23 @@ local filesystem = {}
     --- @return boolean|nil result
     --- @return string|nil error
     function filesystem.close(file_object)
-        local ok, err = filesystem.validateType(file_object, "t")
+        local ok, err = filesystem.validateObject(file_object)
         if not ok then
             return nil, err
         end
+
+        file_object.hardware_component.close(file_object.handle)
+
         file_object.closed = true
-        if file_object.closed == true then
-            return true
-        else
-            return false, "unable to close file"
-        end
+        return true, nil
     end
 
     --- Moves the file cursor to specified position.
     --- @param file_object table
     --- @param pos number
-    --- @param mode string "set"(from beginning), "cur" (from file pos), "end")
-    function filesystem.seek(file_object, pos, mode)
-        local ok, err = filesystem.validateType(file_object, "t")
+    --- @param whence string "set"(from beginning), "cur" (from file pos), "end")
+    function filesystem.seek(file_object, pos, whence)
+        local ok, err = filesystem.validateObject(file_object)
         if not ok then
             return nil, err
         end
@@ -281,67 +246,50 @@ local filesystem = {}
             return nil, err
         end
 
-        mode = mode or "set"
-        local filesize = #file_object.metatable.data
-        local file_pos = file_object.pos
-        print("File size:", filesize, "Current position:", file_pos, "Seek position:", pos, "Mode:", mode)
+        whence = whence or "set"
 
-        if mode == "set" then
-            file_pos = pos
-        elseif mode == "cur" then
-            file_pos = file_object.pos + pos
-        elseif mode == "end" then
-            file_pos = filesize + pos
-        else
-            return nil, "bad argument (refernce_point): invalid value, must be set to 'set', 'cur', or 'end'"
+        if whence ~= "set" and whence ~= "cur" and whence ~= "end" then
+            return nil, "bad argument (whence): invalid value, must be 'set', 'cur', or 'end'"
         end
 
-        if file_pos < 1 then
-            file_pos = 1
+        local new_pos = file_object.hardware_component.seek(file_object.handle, whence, pos)
+        
+        if not new_pos then
+            return nil, "Failed to seek in file"
         end
-        if file_pos > filesize then
-            file_pos = filesize
-        end
-        file_object.pos = file_pos
-        return file_pos
+
+        return new_pos, nil
     end
 
     -- Check if a file or directory exists.
-    --- @param path string
-    --- @return boolean result
-    function filesystem.exists(path)
-        local path_metatable = filesystem.getPathMetatable(path)
-        if path_metatable then
-            return true
+    --- @param abs_path string
+    --- @return any result_or_error
+    function filesystem.exists(abs_path)
+        local ok, err = filesystem.validateType(abs_path, "s")
+        if not ok then
+            return err
         else
-            return false
+            return OS_FILESYSTEM.exists(abs_path)
         end
     end
 
     -- List contents of a directory.
-    --- @param path string
-    --- @return table|nil contents
-    --- @return string|nil error
-    function filesystem.list(path)
-        local ok, err, dir = filesystem.validateType(path, "d")
+    --- @param abs_path string
+    --- @return any contents
+    function filesystem.list(abs_path)
+        local ok, err = filesystem.validateType(abs_path, "d")
         if not ok then
-            return nil, err
+            return err
         end
 
-        local contents = {}
-        for name in pairs(dir.contents) do
-            if dir.contents[name] ~= nil then
-                table.insert(contents, name)
-            end
-        end
-        return contents, nil
+        return OS_FILESYSTEM.list(abs_path)
     end
 
     --- Check if a path is a directory.
-    --- @param path string
+    --- @param abs_path string
     --- @return boolean result
-    function filesystem.isDirectory(path)
-        local ok, _, _ = filesystem.validateType(path, "d")
+    function filesystem.isDirectory(abs_path)
+        local ok, _ = filesystem.validateType(abs_path, "d")
         if not ok then
             return false
         else
@@ -358,45 +306,65 @@ local filesystem = {}
             return nil, "bad argument (path): invalid directory path"
         end
 
-        local parent_path, dir_name = filesystem.validatePath(path)
-
-        local ok, err, parent_metatable = filesystem.validateType(parent_path, "d")
-        if not ok then
-            return nil, err
+        if OS_FILESYSTEM.exists(path) then
+            if OS_FILESYSTEM.isDirectory(path) then
+                return nil, "Directory already exists"
+            else
+                return nil, "File with that name already exists"
+            end
         end
 
-        if parent_metatable.contents[dir_name] then
-            return nil, "Directory already exists"
-        end
+        local success = OS_FILESYSTEM.makeDirectory(path)
 
-        parent_metatable.contents[dir_name] = {
-            type = "dir",
-            contents = {},
-            modified = os.uptime()
-        }
+        if not success then
+            return nil, "Failed to create directory"
+        end
         return true, nil
     end
 
     --- Recursively copy a file or directory to a new location.
-    --- @param copy_dir table
-    --- @return table
-    local function recursionCopy(copy_dir)
-        if copy_dir.type == "dir" then
-            local new_directory = {
-                                    type = "dir",
-                                    contents = {}
-                                    }
-            for directory, file in pairs(copy_dir.contents) do
-                new_directory.contents[directory] = recursionCopy(file)
+    --- @param origin_path string
+    --- @param destination_path string
+    --- @return boolean|nil success
+    --- @return string|nil error
+    local function recursionCopy(origin_path, destination_path)
+        if OS_FILESYSTEM.isDirectory(origin_path) then
+            local success = OS_FILESYSTEM.makeDirectory(destination_path)
+            if not success then
+                return nil, "Failed to create directory: " .. destination_path
             end
-            return new_directory
-        elseif copy_dir.type == "file" then
-            return {
-                type = "file",
-                data = copy_dir.data,
-                size = copy_dir.size,
-                modified = copy_dir.modified
-            }
+
+            local contents = OS_FILESYSTEM.list(origin_path)
+            for _, item in ipairs(contents) do
+                local item_origin_path = origin_path .. "/" .. item
+                local item_destination_path = destination_path .. "/" .. item
+                local ok, err = recursionCopy(item_origin_path, item_destination_path)
+                if not ok then
+                    return nil, err
+                end
+            end
+            return true, nil
+        else
+            local source_file = OS_FILESYSTEM.open(origin_path, "r")
+            if not source_file then
+                return nil, "Failed to open source file: " .. origin_path
+            end
+            local destination_file = OS_FILESYSTEM.open(destination_path, "w")
+            if not destination_file then
+                OS_FILESYSTEM.close(source_file)
+                return nil, "Failed to open destination file: " .. destination_path
+            end
+            
+            while true do
+                local data = OS_FILESYSTEM.read(source_file, 4096)
+                if not data then
+                    break
+                end
+                OS_FILESYSTEM.write(destination_file, data)
+            end
+            OS_FILESYSTEM.close(source_file)
+            OS_FILESYSTEM.close(destination_file)
+            return true, nil
         end
     end
     
@@ -406,30 +374,28 @@ local filesystem = {}
     --- @return boolean|nil success
     --- @return string|nil error
     function filesystem.copy(origin_path, destination_path)
-        local ok, err, origin_metatable = filesystem.validateType(origin_path, "f")
-        if not ok then
-            ok, err, origin_metatable = filesystem.validateType(origin_path, "d")
+        local args = {origin_path, destination_path}
+
+        for _, arg in ipairs(args) do
+            local ok, err = filesystem.validateType(arg, "s")
             if not ok then
-                return nil, "bad argument (origin): does not exist"
+                return nil, err
             end
         end
 
-        if origin_metatable.type == "dir" and destination_path:sub(1, #origin_path) == origin_path then
-            return nil, "bad argument (destination): cannot copy self"
+        if not OS_FILESYSTEM.exists(origin_path) then
+            return nil, "bad argument (origin): does not exist"
         end
 
-        local destination_path, destination_name = filesystem.validatePath(destination_path)
-        local ok, err, destination_metatable = filesystem.validateType(destination_path, "d")
-        if not ok then
-            return nil, err
-        end
-
-        if destination_metatable.contents[destination_name] then
+        if OS_FILESYSTEM.exists(destination_path) then
             return nil, "bad argument (destination): file already exists"
         end
 
-        destination_metatable.contents[destination_name] = recursionCopy(origin_metatable)
-        return true
+        if OS_FILESYSTEM.isDirectory(origin_path) and destination_path:sub(1, #origin_path) == origin_path then
+            return nil, "bad argument (destination): cannot copy directory"
+        end
+
+        return recursionCopy(origin_path, destination_path)
     end
 
     --- Move a file or directory to a new location.
@@ -458,22 +424,27 @@ local filesystem = {}
             return nil, "bad argument (path): invalid path"
         end
 
-        local modded_path = abs_path:gsub("/+$", "")
-        local parent_path, name = filesystem.validatePath(modded_path)
-        local parent_metatable = filesystem.getPathMetatable(parent_path)
-
-        if not parent_metatable or not parent_metatable.contents[name] then
-            return nil, "bad argument (path): parent directory does not exist"
+        if not OS_FILESYSTEM.exists(abs_path) then
+            return nil, "bad argument (path): path does not exist"
         end
 
-        if not parent_metatable.contents[name] then
-            return nil, "bad argument (path): file or directory does not exist"
+        if OS_FILESYSTEM.isDirectory(abs_path) then
+            local contents = OS_FILESYSTEM.list(abs_path)
+            for _, item in ipairs(contents) do
+                local item_path = abs_path .. "/" .. item
+                local ok, err = filesystem.removeRecursive(item_path)
+                if not ok then
+                    return nil, err
+                end
+            end
         end
 
-        parent_metatable.contents[name] = nil
+        local success = OS_FILESYSTEM.remove(abs_path)
+        if not success then
+            return nil, "Failed to remove: " .. abs_path
+        end
         return true
     end
-
 
     --- Remove a file or directory.
     --- @param abs_path string
@@ -484,26 +455,23 @@ local filesystem = {}
             return nil, "bad argument (path): invalid path"
         end
 
-        local modded_path = abs_path:gsub("/+$", "")
-        local parent_path, name = filesystem.validatePath(modded_path)
-        local parent_metatable = filesystem.getPathMetatable(parent_path)
-
-        if not parent_metatable or not parent_metatable.contents[name] then
-            return nil, "bad argument (path): parent directory does not exist"
-        end
-
-        if not parent_metatable.contents[name] then
+        if not OS_FILESYSTEM.exists(abs_path) then
             return nil, "bad argument (path): file or directory does not exist"
         end
 
-        local target_metatable = filesystem.getPathMetatable(modded_path)
-
-        if target_metatable.contents and next(target_metatable.contents) then
-            return nil, "error: directory not empty"
+        if OS_FILESYSTEM.isDirectory(abs_path) then
+            local contents = OS_FILESYSTEM.list(abs_path)
+            if #contents > 0 then
+                return nil, "error: directory not empty"
+            end
         end
 
-        parent_metatable.contents[name] = nil
-        return true
+        local success = OS_FILESYSTEM.remove(abs_path)
+        if not success then
+            return nil, "Failed to remove: " .. abs_path
+        end
+
+        return true, nil
     end
 
     -- Get the size of a file or directory.
@@ -511,21 +479,28 @@ local filesystem = {}
     --- @return number|nil size
     --- @return string|nil err
     function filesystem.getSize(abs_path)
-        local file_metatable = filesystem.getPathMetatable(abs_path)
-        if not file_metatable then
+        local ok, err = filesystem.validateType(abs_path, "s")
+        if not ok then
+            return nil, err
+        end
+
+        if not OS_FILESYSTEM.exists(abs_path) then
             return nil, "bad argument (path): file or directory does not exist"
         end
 
-        if file_metatable.type == "file" then
-            return #file_metatable.data
-        elseif file_metatable.type == "dir" then
-            return 0, "bad argument (path): cannot get size of directory"
-        else
-            return nil, "bad argument (path): invalid type"
+        if OS_FILESYSTEM.isDirectory(abs_path) then
+            return nil, "bad argument (path): cannot get size of directory"
         end
+
+        local size = OS_FILESYSTEM.size(abs_path)
+        if not size then
+            return nil, "Failed to get size of file"
+        end
+
+        return size, nil
     end
 
-    --- Mount a disk to a mount point. NOT SET UP FOR REAL HARDWARE
+    --- SLATED FOR DELETION
     --- @param disk_to_mnt table
     --- @return string|nil mnt_address
     --- @return string|nil err
@@ -555,6 +530,7 @@ local filesystem = {}
         return mnt_addr
     end
 
+    --- SLATED FOR DELETION
     --- Unmount a disk from a mount point.
     --- @param abs_path string
     --- @return boolean|nil success
@@ -579,30 +555,33 @@ local filesystem = {}
     --- @return string|nil temp_file_path
     --- @return string|nil err
     function filesystem.tempFile()
-        local temp_metatable = filesystem.getPathMetatable("/tmp")
-        if not temp_metatable then
-            filesystem.makeDirectory("/tmp")
-            temp_metatable = filesystem.getPathMetatable("/tmp")
+        if not OS_FILESYSTEM.exists("/tmp") then
+            local ok = OS_FILESYSTEM.makeDirectory("/tmp")
+            if not ok then
+                return nil, "Failed to create temporary directory"
+            end
         end
 
         local tries = 0
         local temp_file_name
+        local temp_file_path
         repeat
             temp_file_name = "tmp_" .. tostring(os.uptime()) .. "_" .. tostring(math.random(1000, 9999))
+            temp_file_path = "/tmp/" .. temp_file_name
             tries = tries + 1
-        until not temp_metatable.contents[temp_file_name] or tries > 100
+        until not OS_FILESYSTEM.exists("/tmp/" .. temp_file_name) or tries > 100
 
         if tries > 100 then
             return nil, "Unable to create temporary file with unique name"
         end
 
-        temp_metatable.contents[temp_file_name] = {
-            type = "file",
-            data = "",
-            size = 0,
-            modified = os.uptime()
-        }
-        return "/tmp/" .. temp_file_name
+        local handle = OS_FILESYSTEM.open("/tmp/" .. temp_file_name, "w")
+        if not handle then
+            return nil, "Failed to create temporary file"
+        end
+        OS_FILESYSTEM.close(handle)
+
+        return temp_file_path, nil
     end
         
     --- Combines two file paths, ensures only one "/" between the two

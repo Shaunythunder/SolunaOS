@@ -76,7 +76,7 @@ local draw = {}
         end
 
         local draw_y = y_home
-
+        local lines_drawn = 0
         for _, line_text in ipairs(lines) do
             local string_length = #line_text
             while string_length > width do
@@ -87,12 +87,15 @@ local draw = {}
                 draw_y = draw_y + 1
                 line_text = line_text:sub(width + 1)
                 string_length = #line_text
+                lines_drawn = lines_drawn + 1
             end
             gpu.fill(1, draw_y, width, 1, " ")
             gpu.set(1, draw_y, line_text)
             draw_y = draw_y + 1
+            lines_drawn = lines_drawn + 1
         end
         cursor:setPosition(x_home, y_home)
+        return lines_drawn
     end
 
     --- Draws a box from start xy coordinates. Lineweight determines the thickness.

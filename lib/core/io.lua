@@ -6,7 +6,6 @@ local fps = _G.fps
 local text_buffer = require("text_buffer")
 local os = require("os")
 local draw = require("draw")
-
 local event = _G.event
 local keyboard = _G.keyboard
 local gpu = _G.primary_gpu
@@ -17,16 +16,16 @@ local io = {}
 
     function io.write(...)
         local args = {...}
-        cursor:setHomeY(cursor:getY() + 1)
-        cursor:setPosition(cursor:getX(), cursor:getY())
         local output = table.concat(args, " ")
-        draw.termText(output)
+        local increment = draw.termText(output, 1, cursor:getHomeY())
+        cursor:setHomeY(cursor:getHomeY() + increment)
+        cursor:setPosition(1, cursor:getHomeY())
     end
 
     function io.writeBuffered(scroll_buffer, ...)
         local args = {...}
         local output = table.concat(args, " ")
-        scroll_buffer:addLine(output)
+        local increment = scroll_buffer:addLine(output)
         
         local width, height = gpu.getResolution()
         local visible_lines = scroll_buffer:getVisibleLines()
@@ -41,7 +40,7 @@ local io = {}
         else
             draw.termText(output, 1, #visible_lines)
         end
-        local cursor_y = math.min(#visible_lines + 1, height)
+        local cursor_y = math.min(#visible_lines, height) + increment
         cursor:setHomeY(cursor_y)
         cursor:setPosition(1, cursor_y)
         os.sleep(fps) -- Allow time for rendering

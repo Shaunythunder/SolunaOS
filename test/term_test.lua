@@ -20,6 +20,10 @@ local prompt = "test> "
 
 while true do
     local input = io.read(prompt)
+    if input then
+        local input = prompt .. input
+        io.writeBuffered(terminal_buffer, input)
+    end
     
     if input == "exit" then
         io.writeBuffered(terminal_buffer, "Goodbye!")
