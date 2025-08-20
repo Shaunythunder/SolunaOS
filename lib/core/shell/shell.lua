@@ -1,6 +1,6 @@
 local scroll_buffer = require("scroll_buffer")
 local fs = require("filesystem")
-local io = require("io")
+local terminal = require("terminal")
 local os = require("os")
 
 local shell = {}
@@ -9,24 +9,54 @@ local shell = {}
     function shell.new()
         local self = setmetatable({}, shell)
         self.scroll_buffer = scroll_buffer.new()
+        _G.scroll_buffer = self.scroll_buffer
         self.current_dir = "/"
         self.prompt = "SolunaOS # "
         self.commands = {}
-        self:loadCommands()
         return self
     end
 
+    function shell:terminate()
+        _G.scroll_buffer = nil
+        for attribute in pairs(self) do
+            self[attribute] = nil
+        end
+        setmetatable(self, nil)
+    end
+
     function shell:run()
+        self:output("Welcome to SolunaOS Shell")
+        self:output("Currently in alpha.")
+        _G.scroll_buffer = self.scroll_buffer
         while true do
             local line = self:input()
             if line then
+                local entry = self.prompt .. line
+                self:output(entry)
                 local parsed_input = self:parseInput(line)
                 if parsed_input then
                     local result = self:execute(parsed_input)
+                    if result == "exit" then
+                        break
+                    end
                     self:output(result)
                 end
             end
         end
+        shell:terminate()
+    end
+
+    function shell:input(prompt)
+        prompt = self.prompt
+        return terminal.read(prompt)
+    end
+
+    function shell:output(text)
+        terminal.writeBuffered(self.scroll_buffer, text)
+    end
+
+    function shell:updatePrompt(prompt)
+        self.prompt = prompt
     end
 
     function shell:parseInput(input)
@@ -316,7 +346,7 @@ local shell = {}
                     table.insert(results, result)
                     break
                 else
-                    local result, exit_code = self:executeCommand(command_structure)
+                    local result, exit_code = self:executeSingleCommand(command_structure)
                     table.insert(results, result)
                     last_exit_code = exit_code or 0
 
@@ -348,7 +378,12 @@ local shell = {}
         if self.commands[command] then
             output = self.commands[command](args, input_data) or ""
         else
-            return "Error: Command '" .. command .. "' not found", 1
+            local command_module = self:loadCommand(command)
+            if command_module then
+                output = command_module.execute(args, input_data, self) or ""
+            else
+                return "Error: Command '" .. command .. "' not found", 1
+            end
         end
 
         if command_structure.output_redirect then
@@ -387,54 +422,30 @@ local shell = {}
         self:output("Starting background job: " .. command_structure.command)
     end
 
-    function shell:input(prompt)
-        self:output(prompt or self.prompt)
-        return io.read()
-    end
-
-    function shell:output(text)
-        io.writeBuffered(self.scroll_buffer, text)
-    end
-
-    function shell:loadCommands()
-       local command_paths = {
-        "lib.core.shell.commands.filesystem",
-        "lib.core.shell.commands.navigation", 
-        "lib.core.shell.commands.text",
-        "lib.core.shell.commands.system",
-        "lib.core.shell.commands.environment",
-        "lib.core.shell.commands.io",
-        "lib.core.shell.commands.network",
-        "lib.core.shell.commands.sh",
-        "lib.core.shell.commands.misc",
+    function shell:loadCommand(command_name)
+        local command_paths = {
+        "/lib/core/shell/commands/filesystem",
+        "/lib/core/shell/commands/navigation", 
+        "/lib/core/shell/commands/text",
+        "/lib/core/shell/commands/system",
+        "/lib/core/shell/commands/environment",
+        "/lib/core/shell/commands/io",
+        "/lib/core/shell/commands/network",
+        "/lib/core/shell/commands/sh",
+        "/lib/core/shell/commands/misc",
        }
-
+        
        for _, path in ipairs(command_paths) do
-            self:loadCommandsFromPath(path)
-       end
-    end
-
-    function shell:loadCommandsFromPath(abs_path)
-        local file_path = abs_path:gsub("%.", "/")
-
-        if fs.exists(file_path) and fs.isDirectory(file_path) then
-            local files = fs.list(file_path)
-            if type(files) == "table" then
-                for _, filename in ipairs(files) do
-                    if filename:match("%.lua$") then
-                        local command_name = filename:gsub("%.lua$", "")
-                        local full_module_path = abs_path .. "." ..command_name
-
-                        local ok, command_module = pcall(require, full_module_path)
-                        if ok and command_module and command_module.execute then
-                            self.commands[command_name] = function(args, input_data)
-                                return command_module.execute(args, input_data)
-                            end
-                        end
-                    end
+            local full_module_path = path .. "/" .. command_name
+            local ok, command_module = pcall(require, full_module_path)
+            if ok and command_module and command_module.execute then
+                self.commands[command_name] = function(args, input_data)
+                    return command_module.execute(args, input_data, self)
                 end
+                return command_module
             end
         end
+        return nil
     end
-
+       
 return shell

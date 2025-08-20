@@ -180,9 +180,11 @@ local scrollBuffer = {}
 
     -- Adds new line to terminal buffer with option logging feature
     ---@param line string
+    ---@return number y_home_increment
     function scrollBuffer:addLine(line)
         local width, _ = gpu.getResolution()
-        local lines_added = 0
+        local lines_added = 1
+        local wrap = 0
 
         while #line > 0 do
         if #line > width then
@@ -190,9 +192,9 @@ local scrollBuffer = {}
             table.insert(self.buffer_lines, wrapped_line)
             line = line:sub(width + 1)
             lines_added = lines_added + 1
+            wrap = wrap + 1
         else
             table.insert(self.buffer_lines, line)
-            lines_added = lines_added + 1
             break
         end
     end
@@ -202,6 +204,7 @@ local scrollBuffer = {}
         if self.logging and self.log_file_path then
             self:exportLine(self.log_file_path, line)
         end
+        lines_added = lines_added - wrap
         return lines_added
     end
 

@@ -12,43 +12,42 @@ local gpu = _G.primary_gpu
 local BLACK = 0x000000
 local WHITE = 0xFFFFFF
 
-local io = {}
+local terminal = {}
 
-    function io.write(...)
+    function terminal.write(...)
         local args = {...}
         local output = table.concat(args, " ")
-        local increment = draw.termText(output, 1, cursor:getHomeY())
+        local increment = draw.termText(output, 1)
         cursor:setHomeY(cursor:getHomeY() + increment)
         cursor:setPosition(1, cursor:getHomeY())
     end
 
-    function io.writeBuffered(scroll_buffer, ...)
+    function terminal.writeBuffered(scroll_buffer, ...)
         local args = {...}
         local output = table.concat(args, " ")
         local increment = scroll_buffer:addLine(output)
         
-        local width, height = gpu.getResolution()
+        local _, height = gpu.getResolution()
         local visible_lines = scroll_buffer:getVisibleLines()
-        if #visible_lines >= height then
-            draw.clear()
-            for line = 1, height - 1 do
-                if visible_lines[line + 1] then
-                    draw.termText(visible_lines[line + 1], 1, line)
-                end
+        draw.clear()
+        for i, line in ipairs(visible_lines) do
+            if i <= height - 1 then  -- Reserve bottom line
+                draw.termText(line, 1, i)
             end
-            draw.termText(output, 1, height)
-        else
-            draw.termText(output, 1, #visible_lines)
         end
         local cursor_y = math.min(#visible_lines, height) + increment
+        if cursor_y > height then
+            cursor_y = height
+        end
         cursor:setHomeY(cursor_y)
         cursor:setPosition(1, cursor_y)
         os.sleep(fps) -- Allow time for rendering
     end
 
-    function io.read(prompt)
+    function terminal.read(prompt)
         local prepend_text = prompt or ""
-        draw.termText(prepend_text, #prepend_text, cursor:getHomeY())
+        draw.termText(prepend_text, #prepend_text)
+        cursor:setPosition(#prepend_text + 1, cursor:getHomeY())
         local input_buffer = text_buffer.new()
         while true do
             local character = nil
@@ -82,10 +81,11 @@ local io = {}
                 input_buffer:insert(character)
             end
             local string = prepend_text .. input_buffer:getText()
-            draw.termText(string, 1, cursor:getHomeY())
+            local end_x, end_y = draw.termText(string, 1)
             local cursor_x = #prepend_text + input_buffer:getPosition()
-            cursor:setPosition(cursor_x, cursor:getHomeY())
+            local cursor_y = cursor:getHomeY() + end_y - 1
+            cursor:setPosition(cursor_x, cursor_y)
         end
     end
 
-return io
+return terminal

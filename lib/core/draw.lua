@@ -6,6 +6,7 @@ local cursor = _G.cursor
 local width, height = gpu.getResolution()
 local BLACK = 0x000000
 local WHITE = 0xFFFFFF
+local active_scroll_buffer = _G.scroll_buffer or nil
 
 local draw = {}
 
@@ -19,10 +20,10 @@ local draw = {}
 
     --- Clears the screen to black
     function draw.clear()
+        draw.updateResolution()
         gpu.setForeground(WHITE)
         gpu.setBackground(BLACK)
         gpu.fill(1, 1, width, height, " ")
-        cursor:reset()
     end
 
     --- Renders a string at specified coordinates at the specified color
@@ -61,6 +62,7 @@ local draw = {}
     ---@param y_pos number|nil
     ---@param foreground number|nil hex only, use render.getRGB() white default
     ---@param background number|nil hex only, use render.getRGB() black default
+    ---@return number x, number y
     function draw.termText(input_str, x_pos, y_pos, foreground, background)
         local x_home = x_pos or cursor:getX()
         local y_home = y_pos or cursor:getHomeY()
@@ -76,26 +78,32 @@ local draw = {}
         end
 
         local draw_y = y_home
-        local lines_drawn = 0
+        local relative_x = 1
         for _, line_text in ipairs(lines) do
             local string_length = #line_text
             while string_length > width do
+                if draw_y > height and active_scroll_buffer then
+                    active_scroll_buffer:scrollUp()
+                    draw_y = height
+                end
                 local line = line_text:sub(1, width)
                 gpu.fill(1, draw_y, width, 1, " ")
                 gpu.set(1, draw_y, line)
-                cursor:movePosition(0, 1)
                 draw_y = draw_y + 1
                 line_text = line_text:sub(width + 1)
                 string_length = #line_text
-                lines_drawn = lines_drawn + 1
             end
+            if draw_y > height and active_scroll_buffer then
+                active_scroll_buffer:scrollUp()
+                draw_y = height
+            end
+            
+            relative_x = string_length
             gpu.fill(1, draw_y, width, 1, " ")
             gpu.set(1, draw_y, line_text)
-            draw_y = draw_y + 1
-            lines_drawn = lines_drawn + 1
         end
-        cursor:setPosition(x_home, y_home)
-        return lines_drawn
+        local relative_y = draw_y - y_home + 1
+        return relative_x, relative_y
     end
 
     --- Draws a box from start xy coordinates. Lineweight determines the thickness.

@@ -91,5 +91,4 @@ do
     end
 
     runBootScripts()
-    dofile("/test.lua")
 end

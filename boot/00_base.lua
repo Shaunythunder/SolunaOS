@@ -77,12 +77,12 @@ _G.package = _G.package or {}
 -- These paths allow require("<module_name>") instead of the full path
 local lib_path = "/lib/?.lua"
 local core_path = "/lib/core/?.lua"
-local event_path = "/lib/core/event/?.lua"
+local shell_path = "/lib/core/shell/?.lua"
 local custom_path = "?.lua"
 
 package.path = lib_path .. ";" ..
                core_path .. ";" ..
-               event_path .. ";" ..
+               shell_path .. ";" ..
                custom_path
 
                
