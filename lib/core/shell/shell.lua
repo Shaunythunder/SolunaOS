@@ -1,4 +1,4 @@
-local scroll_buffer = require("scroll_buffer")
+local scroll_buffer = _G.scroll_buffer
 local fs = require("filesystem")
 local terminal = require("terminal")
 local os = require("os")
@@ -8,8 +8,7 @@ local shell = {}
 
     function shell.new()
         local self = setmetatable({}, shell)
-        self.scroll_buffer = scroll_buffer.new()
-        _G.scroll_buffer = self.scroll_buffer
+        self.scroll_buffer = scroll_buffer
         self.current_dir = "/"
         self.prompt = "SolunaOS # "
         self.commands = {}
@@ -17,7 +16,7 @@ local shell = {}
     end
 
     function shell:terminate()
-        _G.scroll_buffer = nil
+        self.scroll_buffer:clear()
         for attribute in pairs(self) do
             self[attribute] = nil
         end

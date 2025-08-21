@@ -2,6 +2,10 @@
 
 _G.fps = 0.05
 local os = require("os")
+local Scroll_buffer = require("scroll_buffer")
+local scroll_buffer = Scroll_buffer.new()
+_G.scroll_buffer = scroll_buffer
+
 local Keyboard = require("keyboard")
 local keyboard = Keyboard.new()
 _G.keyboard = keyboard
@@ -22,10 +26,11 @@ local Shell = require("shell")
 --
 _G.print = function(...)
     local args = {...}
-    for i = 1, #args do
-        args[i] = tostring(args[i])
+    local output = {}
+    for _, arg in ipairs(args) do
+        table.insert(output, tostring(arg))
     end
-    terminal.write(table.unpack(args))
+    terminal.writeBuffered(_G.scroll_buffer, table.concat(output, " "))
 end
 
 local shell = Shell.new()
@@ -33,7 +38,7 @@ local shell = Shell.new()
 
 print("SolunaOS initializing...")
 
-shell:run()
+dofile("test/print_test.lua")
 
 
 
