@@ -24,21 +24,16 @@ local terminal = {}
 
     function terminal.writeBuffered(scroll_buffer, ...)
         local args = {...}
+        local height = _G.height
         local output = table.concat(args, " ")
         local increment = scroll_buffer:addLine(output)
         
-        local _, height = gpu.getResolution()
         local visible_lines = scroll_buffer:getVisibleLines()
-        draw.clear()
-        for i, line in ipairs(visible_lines) do
-            if i <= height - 1 then  -- Reserve bottom line
-                draw.termText(line, 1, i)
-            end
-        end
         local cursor_y = math.min(#visible_lines, height) + increment
         if cursor_y > height then
             cursor_y = height
         end
+        scroll_buffer:pushReset()
         cursor:setHomeY(cursor_y)
         cursor:setPosition(1, cursor_y)
         os.sleep(fps) -- Allow time for rendering
@@ -82,9 +77,9 @@ local terminal = {}
             end
             local string = prepend_text .. input_buffer:getText()
             local end_x, end_y = draw.termText(string, 1)
-            local cursor_x = #prepend_text + input_buffer:getPosition()
+            end_x = end_x + 1
             local cursor_y = cursor:getHomeY() + end_y - 1
-            cursor:setPosition(cursor_x, cursor_y)
+            cursor:setPosition(end_x, cursor_y)
         end
     end
 

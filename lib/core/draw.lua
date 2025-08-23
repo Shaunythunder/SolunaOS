@@ -3,10 +3,9 @@
 
 local gpu = _G.primary_gpu
 local cursor = _G.cursor
-local width, height = gpu.getResolution()
 local BLACK = 0x000000
 local WHITE = 0xFFFFFF
-local active_scroll_buffer = _G.scroll_buffer or nil
+local active_scroll_buffer = _G.scroll_buffer
 
 local draw = {}
 
@@ -15,12 +14,13 @@ local draw = {}
 
     --- Updates the resolution variables
     function draw.updateResolution()
-        width, height = gpu.getResolution()
+        _G.width, _G.height = gpu.getResolution()
     end
 
     --- Clears the screen to black
     function draw.clear()
-        draw.updateResolution()
+        local height = _G.height
+        local width = _G.width
         gpu.setForeground(WHITE)
         gpu.setBackground(BLACK)
         gpu.fill(1, 1, width, height, " ")
@@ -32,7 +32,8 @@ local draw = {}
     --- @param color number Color value (0xRRGGBB)
     --- @return string|nil error
     function draw.pixel(x_pos, y_pos, color)
-        draw.updateResolution()
+        local height = _G.height
+        local width = _G.width
         if x_pos < 1 or x_pos > width or y_pos < 1 or y_pos > height then
             return "Position out of bounds"
         end
@@ -64,13 +65,18 @@ local draw = {}
     ---@param background number|nil hex only, use render.getRGB() black default
     ---@return number x, number y
     function draw.termText(input_str, x_pos, y_pos, foreground, background)
+        local height = _G.height
+        local width = _G.width
         local x_home = x_pos or cursor:getX()
         local y_home = y_pos or cursor:getHomeY()
-        draw.updateResolution()
         local foreground = foreground or WHITE
         local background = background or BLACK
         gpu.setForeground(foreground)
         gpu.setBackground(background)
+        local y_below = height - y_home - 1
+        if y_below > 0 then
+            gpu.fill(1, y_home + 1, width, y_below, " ")
+        end
         
         local lines = {}
         for newline in tostring(input_str):gmatch("([^\n]*)\n?") do
@@ -82,20 +88,17 @@ local draw = {}
         for _, line_text in ipairs(lines) do
             local string_length = #line_text
             while string_length > width do
-                if draw_y > height and active_scroll_buffer then
-                    active_scroll_buffer:scrollUp()
-                    draw_y = height
-                end
                 local line = line_text:sub(1, width)
                 gpu.fill(1, draw_y, width, 1, " ")
                 gpu.set(1, draw_y, line)
                 draw_y = draw_y + 1
                 line_text = line_text:sub(width + 1)
                 string_length = #line_text
-            end
-            if draw_y > height and active_scroll_buffer then
-                active_scroll_buffer:scrollUp()
-                draw_y = height
+                if draw_y > height and scroll_buffer then
+                    scroll_buffer:pushUp()
+                    y_home = y_home - 1
+                    cursor:setHomeY(y_home)
+                end
             end
             
             relative_x = string_length
@@ -144,7 +147,8 @@ local draw = {}
     -- WHAT WE NEED TO DO IS TO EITHER CALCULATE AND CACHE THE DIFFERENT LINES AND THEN DRAW THEM,
     -- TO TURN 500 DRAWS INTO 10 OR... DON'T DRAW CIRCLES.
     function draw.circle(center_x, center_y, radius, color, lineweight)
-        draw.updateResolution()
+        local height = _G.height
+        local width = _G.width
         lineweight = lineweight or 0
         if center_x < 1 or center_x > width or center_y < 1 or center_y > height then
             return "Position out of bounds"
@@ -172,7 +176,8 @@ local draw = {}
 
     -- SAME DEAL AS CIRCLES, DRAFT VERSION UNTESTED
     function draw.ellipse(center_x, center_y, x_radius, y_radius, color, lineweight)
-        draw.updateResolution()
+        local height = _G.height
+        local width = _G.width
         lineweight = lineweight or 0
         if center_x < 1 or center_x > width or center_y < 1 or center_y > height then
             return "Position out of bounds"

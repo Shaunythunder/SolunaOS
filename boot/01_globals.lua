@@ -1,29 +1,33 @@
 -- boot/01_globals.lua
 
+_G.width, _G.height = _G.primary_gpu.getResolution()
+
 _G.fps = 0.05
 local os = require("os")
-local Scroll_buffer = require("scroll_buffer")
-local scroll_buffer = Scroll_buffer.new()
-_G.scroll_buffer = scroll_buffer
 
 local Keyboard = require("keyboard")
 local keyboard = Keyboard.new()
 _G.keyboard = keyboard
 
+local Cursor = require("cursor")
+local cursor = Cursor.new()
+_G.cursor = cursor
+
+local Scroll_buffer = require("scroll_buffer")
+local scroll_buffer = Scroll_buffer.new()
+_G.scroll_buffer = scroll_buffer
+
 local Event = require("event")
 local event = Event.new()
 _G.event = event
 
-local Cursor = require("cursor")
-local cursor = Cursor.new()
-_G.cursor = cursor
 
 local terminal = require("terminal")
 local Shell = require("shell")
 
 --_G._print_y = nil -- cleanup
 --_G.bootPrint = nil -- cleanup
---
+
 _G.print = function(...)
     local args = {...}
     local output = {}
@@ -38,7 +42,7 @@ local shell = Shell.new()
 
 print("SolunaOS initializing...")
 
-dofile("test/print_test.lua")
+shell:run()
 
 
 

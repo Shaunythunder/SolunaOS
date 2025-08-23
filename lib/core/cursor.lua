@@ -3,7 +3,7 @@
 
 local os = require("os")
 local gpu = _G.primary_gpu
-local x_max_pos, y_max_pos = gpu.getResolution()
+local x_max_pos, y_max_pos = _G.width, _G.height
 local x_min_pos, y_min_pos = 1, 1
 local old_fg = gpu.getForeground()
 local old_bg = gpu.getBackground()
@@ -49,14 +49,16 @@ local cursor = {}
 
     -- Update to screen boundaries
     function cursor:updateBoundaries()
-        self.x_max_pos, self.y_max_pos = gpu.getResolution()
+        self.x_max_pos = _G.width
+        self.y_max_pos = _G.height
     end
 
     --- Sets the position of the cursor.
     --- @param x_pos number
     --- @param y_pos number
     function cursor:setPosition(x_pos, y_pos)
-        local width, height = gpu.getResolution()
+        local height = _G.height
+        local width = _G.width
         if self.x_max_pos > width then
             self.x_max_pos = width
         end

@@ -1,8 +1,9 @@
 -- /lib/core/scroll_buffer.lua
 -- Contains scroll and print out history
 
+local draw = require("draw")
 local gpu = _G.primary_gpu
--- local filesystem = require("filesystem") cannot be used until we have a real hard drive
+local filesystem = require("filesystem")
 
 local scrollBuffer = {}
     scrollBuffer.__index = scrollBuffer
@@ -14,6 +15,7 @@ local scrollBuffer = {}
         self.visible_max_lines = 60
         self.max_lines = 60
         self.buffer_index = 1
+        self.render_offset = 0
         self.logging = false
         self.log_file_path = nil
         self:updateMaxLines()
@@ -36,9 +38,8 @@ local scrollBuffer = {}
 
     --- Sets max visible lines equal to screen height
     function scrollBuffer:updateMaxLines()
-        local _, height = gpu.getResolution()
-        self.visible_max_lines = height
-        self.max_lines = height * 2
+        self.visible_max_lines = _G.height
+        self.max_lines = _G.height * 2
     end
 
     function scrollBuffer:getLines()
@@ -60,8 +61,7 @@ local scrollBuffer = {}
     end
 
     function scrollBuffer:scrollDown()
-        local _, height = gpu.getResolution()
-        local end_index = #self.buffer_lines - height + 1
+        local end_index = #self.buffer_lines - _G.height + 1
         if end_index < 1 then
             end_index = 1
         end
@@ -72,8 +72,7 @@ local scrollBuffer = {}
     end
 
     function scrollBuffer:scrollToPosition(y_pos)
-        local _, height = gpu.getResolution()
-        local end_index = #self.buffer_lines - height + 1
+        local end_index = #self.buffer_lines - _G.height + 1
         if end_index < 1 then
             end_index = 1
         end
@@ -159,19 +158,33 @@ local scrollBuffer = {}
     --- Updates the visible buffer based on the current buffer index
     function scrollBuffer:updateVisibleBuffer()
         self.visible_lines = {}
-        local _, height = gpu.getResolution()
-        local end_index = self.buffer_index + height
+        local screen_index = 1 - self.render_offset
+        self.buffer_index = #self.buffer_lines - _G.height + 2
+        local end_index = self.buffer_index + _G.height - 1
+
         for i = self.buffer_index, end_index do
             if self.buffer_lines[i] then
                 table.insert(self.visible_lines, self.buffer_lines[i])
+                gpu.fill(1, screen_index, _G.width, 1, " ")
+                draw.termText(self.buffer_lines[i], 1, screen_index)
+                screen_index = screen_index + 1
             end
         end
     end
 
+    function scrollBuffer:pushUp()
+        self.render_offset = self.render_offset + 1
+        self:updateVisibleBuffer()
+    end
+
+    function scrollBuffer:pushReset()
+        self.render_offset = 0
+        self:updateVisibleBuffer()
+    end
+
     --- Scrolls to the bottom of the buffer and updates visible lines
     function scrollBuffer:scrollToBottom()
-        local _, height = gpu.getResolution()
-        self.buffer_index = #self.buffer_lines - height + 1
+        self.buffer_index = #self.buffer_lines - _G.height
         if self.buffer_index < 1 then
             self.buffer_index = 1
         end
@@ -182,22 +195,21 @@ local scrollBuffer = {}
     ---@param line string
     ---@return number y_home_increment
     function scrollBuffer:addLine(line)
-        local width, _ = gpu.getResolution()
         local lines_added = 1
         local wrap = 0
 
         while #line > 0 do
-        if #line > width then
-            local wrapped_line = line:sub(1, width)
-            table.insert(self.buffer_lines, wrapped_line)
-            line = line:sub(width + 1)
-            lines_added = lines_added + 1
-            wrap = wrap + 1
-        else
-            table.insert(self.buffer_lines, line)
-            break
+            if #line > _G.width then
+                local wrapped_line = line:sub(1, _G.width)
+                table.insert(self.buffer_lines, wrapped_line)
+                line = line:sub(_G.width + 1)
+                lines_added = lines_added + 1
+                wrap = wrap + 1
+            else
+                table.insert(self.buffer_lines, line)
+                break
+            end
         end
-    end
         self:updateMaxLines()
         self:removeOldLines()
         self:scrollToBottom()
