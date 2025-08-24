@@ -10,12 +10,15 @@ local scrollBuffer = {}
 
     function scrollBuffer.new()
         local self = setmetatable({}, scrollBuffer)
+        local height = _G.height
+        local width = _G.width
         self.buffer_lines = {}
         self.visible_lines = {}
         self.visible_max_lines = 60
         self.max_lines = 60
         self.buffer_index = 1
         self.render_offset = 0
+        self.vram_buffer = gpu.allocateBuffer(width, height - 1)
         self.logging = false
         self.log_file_path = nil
         self:updateMaxLines()
@@ -157,6 +160,9 @@ local scrollBuffer = {}
 
     --- Updates the visible buffer based on the current buffer index
     function scrollBuffer:updateVisibleBuffer()
+        gpu.setActiveBuffer(self.vram_buffer)
+        local height = _G.height
+        local width = _G.width
         self.visible_lines = {}
         local screen_index = 1 - self.render_offset
         self.buffer_index = #self.buffer_lines - _G.height + 2
@@ -170,6 +176,8 @@ local scrollBuffer = {}
                 screen_index = screen_index + 1
             end
         end
+        gpu.setActiveBuffer(0)
+        gpu.bitblt(0, 1, 1, width, height - 1, self.vram_buffer, 1, 1)
     end
 
     function scrollBuffer:pushUp()

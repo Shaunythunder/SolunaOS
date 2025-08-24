@@ -36,7 +36,6 @@ local terminal = {}
         scroll_buffer:pushReset()
         cursor:setHomeY(cursor_y)
         cursor:setPosition(1, cursor_y)
-        os.sleep(fps) -- Allow time for rendering
     end
 
     function terminal.read(prompt)
@@ -76,10 +75,10 @@ local terminal = {}
                 input_buffer:insert(character)
             end
             local string = prepend_text .. input_buffer:getText()
-            local end_x, end_y = draw.termText(string, 1)
-            end_x = end_x + 1
-            local cursor_y = cursor:getHomeY() + end_y - 1
-            cursor:setPosition(end_x, cursor_y)
+            draw.termText(string, 1)
+            local cursor_x = (#prepend_text + input_buffer:getPosition()) % width
+            local cursor_y = cursor:getHomeY() + math.floor((#prepend_text + input_buffer:getPosition() - 1) / width)
+            cursor:setPosition(cursor_x, cursor_y)
         end
     end
 

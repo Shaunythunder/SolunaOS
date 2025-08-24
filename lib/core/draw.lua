@@ -68,14 +68,14 @@ local draw = {}
         local height = _G.height
         local width = _G.width
         local x_home = x_pos or cursor:getX()
-        local y_home = y_pos or cursor:getHomeY()
+        local home_y = y_pos or cursor:getHomeY()
         local foreground = foreground or WHITE
         local background = background or BLACK
         gpu.setForeground(foreground)
         gpu.setBackground(background)
-        local y_below = height - y_home - 1
+        local y_below = height - home_y - 1
         if y_below > 0 then
-            gpu.fill(1, y_home + 1, width, y_below, " ")
+            gpu.fill(1, home_y + 1, width, y_below, " ")
         end
         
         local lines = {}
@@ -83,11 +83,12 @@ local draw = {}
             table.insert(lines, newline)
         end
 
-        local draw_y = y_home
+        local draw_y = home_y
         local relative_x = 1
         for _, line_text in ipairs(lines) do
             local string_length = #line_text
-            while string_length > width do
+            local cursor_obj = 1
+            while string_length + cursor_obj > width do
                 local line = line_text:sub(1, width)
                 gpu.fill(1, draw_y, width, 1, " ")
                 gpu.set(1, draw_y, line)
@@ -96,16 +97,19 @@ local draw = {}
                 string_length = #line_text
                 if draw_y > height and scroll_buffer then
                     scroll_buffer:pushUp()
-                    y_home = y_home - 1
-                    cursor:setHomeY(y_home)
+                    gpu.fill(1, home_y, width, 1, " ")
+                    home_y = home_y - 1
+                    gpu.fill(1, home_y, width, 1, " ")
+                    gpu.set(1, home_y, line)
+                    cursor:setHomeY(home_y)
                 end
             end
             
             relative_x = string_length
-            gpu.fill(1, draw_y, width, 1, " ")
+            ----gpu.fill(1, draw_y, width, 1, " ")
             gpu.set(1, draw_y, line_text)
         end
-        local relative_y = draw_y - y_home + 1
+        local relative_y = draw_y - home_y + 1
         return relative_x, relative_y
     end
 
