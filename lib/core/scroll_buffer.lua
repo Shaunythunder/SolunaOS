@@ -135,12 +135,14 @@ local scrollBuffer = {}
         return true
     end
 
-    function scrollBuffer:exportLine(file_path, line)
+    function scrollBuffer:exportLine(file_path, lines)
         local file, err = filesystem.open(file_path, "a")
         if not file then
             return false, err
         end
-        file:write(line .. "\n")
+        for _, line in ipairs(lines) do
+            file:write(line .. "\n")
+        end
         file:close()
         return true
     end
@@ -200,29 +202,35 @@ local scrollBuffer = {}
     end
 
     -- Adds new line to terminal buffer with option logging feature
-    ---@param line string
+    ---@param raw_line string
     ---@return number y_home_increment
-    function scrollBuffer:addLine(line)
+    function scrollBuffer:addLine(raw_line)
         local lines_added = 1
         local wrap = 0
+        local lines = {}
+        for actual_line in raw_line:gmatch("([^\n]*)\n?") do
+            table.insert(lines, actual_line)
+        end
 
-        while #line > 0 do
-            if #line > _G.width then
-                local wrapped_line = line:sub(1, _G.width)
-                table.insert(self.buffer_lines, wrapped_line)
-                line = line:sub(_G.width + 1)
-                lines_added = lines_added + 1
-                wrap = wrap + 1
-            else
-                table.insert(self.buffer_lines, line)
-                break
+        for _, line in ipairs(lines) do
+            while #line > 0 do
+                if #line > _G.width then
+                    local wrapped_line = line:sub(1, _G.width)
+                    table.insert(self.buffer_lines, wrapped_line)
+                    line = line:sub(_G.width + 1)
+                    lines_added = lines_added + 1
+                    wrap = wrap + 1
+                else
+                    table.insert(self.buffer_lines, line)
+                    break
+                end
             end
         end
         self:updateMaxLines()
         self:removeOldLines()
         self:scrollToBottom()
         if self.logging and self.log_file_path then
-            self:exportLine(self.log_file_path, line)
+            self:exportLine(self.log_file_path, lines)
         end
         lines_added = lines_added - wrap
         return lines_added

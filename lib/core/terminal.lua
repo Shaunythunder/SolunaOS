@@ -40,19 +40,19 @@ local terminal = {}
 
     function terminal.read(prompt)
         local prepend_text = prompt or ""
-        draw.termText(prepend_text, #prepend_text)
+        draw.termText(prepend_text, 1)
         cursor:setPosition(#prepend_text + 1, cursor:getHomeY())
         local input_buffer = text_buffer.new()
         while true do
             local character = nil
             while character == nil do
                 cursor:show()
-                character = event:keyboardListen(0.5)
+                character = event:listen(0.5)
                 if character ~= nil then
                     break
                 end
                 cursor:hide()
-                character = event:keyboardListen(0.5)
+                character = event:listen(0.5)
                 if character ~= nil then
                     break
                 end
@@ -76,7 +76,7 @@ local terminal = {}
             end
             local string = prepend_text .. input_buffer:getText()
             draw.termText(string, 1)
-            local cursor_x = (#prepend_text + input_buffer:getPosition()) % width
+            local cursor_x = (#prepend_text + input_buffer:getPosition()) % (width)
             local cursor_y = cursor:getHomeY() + math.floor((#prepend_text + input_buffer:getPosition() - 1) / width)
             cursor:setPosition(cursor_x, cursor_y)
         end

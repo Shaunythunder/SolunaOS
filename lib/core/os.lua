@@ -25,6 +25,12 @@ local os = {}
         env[env_var] = env_val
     end
 
+    function os.runApp(App_name)
+        local app = require(App_name)
+        local app_instance = app.new()
+        app_instance:run()
+    end
+
     --- Gets amount of free memory in the OS.
     --- @return number memory bytes
     function os.freeMemory()

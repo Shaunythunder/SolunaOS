@@ -1,21 +1,14 @@
 -- lib/core/event.lua
 -- Provides core event handling functionality for SolunaOS
 
-local keyboard = _G.keyboard
-
 local event = {}
 event.__init = event
 
     event.new = function()
         local self = setmetatable({}, { __index = event })
         self.event_handlers = {}
-        --self:initHandlers()
+        self:initHandlers()
         return self
-    end
-
-    function event:initHandlers()
-        local event_handlers = require("event_handlers")
-        self.event_handlers = event_handlers
     end
 
     function event:getHandler(event_type)
@@ -31,81 +24,157 @@ event.__init = event
         self:initHandlers()
     end
 
-    function event:listen()
-        local event_type, arg1, arg2, arg3, arg4 = computer.pullSignal()
-        if self.event_handlers[event_type] then
-            self.event_handlers[event_type](event_type, arg1, arg2, arg3, arg4)
-        end
-        return event_type, arg1, arg2, arg3, arg4
-    end
-
-    --- Listens for keyboard events triggers keyboard functions.
+    --- Listens for an event with an optional timeout.
     --- @param timeout number|nil
-    --- @return function|nil triggerKeyEvent (key_code)
-    function event:keyboardListen(timeout)
-        local event_type, _, _, key_code, _ = computer.pullSignal(timeout)
-        if event_type == "key_down" then
-            return keyboard:triggerKeyDown(key_code)
-        elseif event_type == "key_up" then
-            return keyboard:triggerKeyUp(key_code)
-        end
+    --- @return any function_result
+    function event:listen(timeout)
+        local event_args = {computer.pullSignal(timeout)}
+        local event_type = event_args[1]
+        return self:trigger(event_type, table.unpack(event_args, 2))
     end
 
-    ---@param overwrite boolean
-    function event:bind(event_type, handler, overwrite)
-        if overwrite then
-            self.event_handlers[event_type] = { handler }
-        else
-            self.event_handlers[event_type] = self.event_handlers[event_type] or {}
-            table.insert(self.event_handlers[event_type], handler)
-        end
-    end
-
-    function event:triggerSpecific(event_type, handler, ...)
-        if self.event_handlers[event_type] then
-            for _, hdlr in ipairs(self.event_handlers[event_type]) do
-                if hdlr == handler then
-                    hdlr(event_type, ...)
-                end
+    --- Triggers an event based on signal
+    --- @param ... any
+    --- @return any function_result passes to event:listen()
+    function event:trigger(...)
+        local args = {...}
+        local event_handler = nil
+        for _, handler_entry in pairs(self.event_handlers) do
+            if handler_entry.event_type == args[1] then
+                event_handler = handler_entry.handler
             end
         end
-    end
-
-    function event:triggerAll(event_type, ...)
-        if self.event_handlers[event_type] then
-            for _, handler in ipairs(self.event_handlers[event_type]) do
-                handler(event_type, ...)
-            end
+        if event_handler ~= nil then
+            return event_handler(table.unpack(args))
         end
     end
 
-    function event.pull()
-        -- Wait for an event to occur and return the event type and associated data
-        return computer.pullSignal()
+    --- Handles key down events
+    --- @param key_code number
+    function event:keyDown(_, _, _, key_code)
+        local keyboard = _G.keyboard
+        return keyboard:triggerKeyDown(key_code)
     end
 
-    local event_handlers = {
-        KEY_DOWN = {code = "key_down", handler = nil},
-        KEY_UP = {code = "key_up", handler = nil},
-        CLIPBOARD = {code = "clipboard", handler = nil},
-        TOUCH = {code = "touch", handler = nil},
-        DRAG = {code = "drag", handler = nil},
-        DROP = {code = "drop", handler = nil},
-        WALK = {code = "walk", handler = nil},
-        COMPONENT_ADDED = {code = "component_added", handler = nil},
-        COMPONENT_REMOVED = {code = "component_removed", handler = nil},
-        COMPONENT_AVAILABLE = {code = "component_available", handler = nil},
-        COMPONENT_UNAVAILABLE = {code = "component_unavailable", handler = nil},
-        COMPUTER_STOPPED = {code = "computer_stopped", handler = nil},
-        COMPUTER_STARTED = {code = "computer_started", handler = nil},
-        COMPUTER_BEEP = {code = "computer_beep", handler = nil},
-        INTERRUPTED = {code = "interrupted", handler = nil},
-        MODEM_MESSAGE = {code = "modem_message", handler = nil},
-        ALARM = {code = "alarm", handler = nil},
-        SCREEN_RESIZED = {code = "screen_resized", handler = nil},
-        TERM_AVAILABLE = {code = "term_available", handler = nil},
-        TERM_UNAVAILABLE = {code = "term_unavailable", handler = nil},
-        TIMER = {code = "timer", handler = nil}
-    }
+    --- Handles key up events
+    --- @param key_code number
+    function event:keyUp(_, _, _, key_code)
+        local keyboard = _G.keyboard
+        return keyboard:triggerKeyUp(key_code)
+    end
+
+    function event:clipboard(event_type, text)
+        return event_type, text
+    end
+    
+    function event:touch(event_type, screen_addr, x_pos, y_pos, mouse_button, player_name)
+        return event_type, screen_addr, x_pos, y_pos, mouse_button, player_name
+    end
+
+    function event:drag(event_type, screen_addr, x_pos, y_pos, mouse_button, player_name)
+        return event_type, screen_addr, x_pos, y_pos, mouse_button, player_name
+    end
+
+    function event:drop(event_type, screen_addr, x_pos, y_pos, mouse_button, player_name)
+        return event_type, screen_addr, x_pos, y_pos, mouse_button, player_name
+    end
+
+    function event:scroll(event_type, screen_addr, x_pos, y_pos, direction, player_name)
+        return event_type, screen_addr, x_pos, y_pos, direction, player_name
+    end
+
+    function event:walk(event_type, screen_addr, x_pos, y_pos, player_name)
+        return event_type, screen_addr, x_pos, y_pos, player_name
+    end
+
+    function event:componentAdded(event_type, address, component_type)
+        return event_type, address, component_type
+    end
+
+    function event:componentRemoved(event_type, address, component_type)
+        return event_type, address, component_type
+    end
+
+    function event:componentAvailable(event_type, address, component_type)
+        return event_type, address, component_type
+    end
+
+    function event:componentUnavailable(event_type, address, component_type)
+        return event_type, address, component_type
+    end
+
+    function event:interrupted(event_type, uptime)
+        return event_type, uptime
+    end
+
+    function event:modemMessage(event_type, receiver_addr, sender_addr, port, distance, ...)
+        return event_type, receiver_addr, sender_addr, port, distance, ...
+    end
+
+    function event:screenResized(event_type, screen_addr, new_width, new_height)
+        if screen_addr == _G.primary_screen_addr then
+            _G.width = new_width
+            _G.height = new_height
+            return
+        end
+        return event_type, screen_addr, new_width, new_height
+    end
+
+    function event:termAvailable()
+        _G.display_available = true
+    end
+
+    function event:termUnavailable()
+        _G.display_available = false
+    end
+
+    function event:redstoneChanged(event_type, address, side, old_value, new_value, color)
+        return event_type, address, side, old_value, new_value, color
+    end
+
+    function event:motion(event_type, address, relative_x, relative_y, relative_z, entity_name)
+        return event_type, address, relative_x, relative_y, relative_z, entity_name
+    end
+
+    function event:inventoryChanged(event_type, slot)
+        return event_type, slot
+    end
+
+    function event:busMessage(event_type, protocol_id, sender_addr, target_addr, data, metadata)
+        return event_type, protocol_id, sender_addr, target_addr, data, metadata
+    end
+
+    function event:carriageMoved(event_type, result, error, x_pos, y_pos, z_pos)
+        return event_type, result, error, x_pos, y_pos, z_pos
+    end
+
+    function event:initHandlers()
+        local event = self
+
+        self.event_handlers = {
+        KEY_DOWN = {event_type = "key_down", handler = function(...) return self:keyDown(...) end},
+        KEY_UP = {event_type = "key_up", handler = function(...) return self:keyUp(...) end},
+        CLIPBOARD = {event_type = "clipboard", handler = function(...) return self:clipboard(...) end},
+        TOUCH = {event_type = "touch", handler = function(...) return self:touch(...) end},
+        DRAG = {event_type = "drag", handler = function(...) return self:drag(...) end},
+        DROP = {event_type = "drop", handler = function(...) return self:drop(...) end},
+        SCROLL = {event_type = "scroll", handler = function(...) return self:scroll(...) end},
+        WALK = {event_type = "walk", handler = function(...) return self:walk(...) end},
+        COMPONENT_ADDED = {event_type = "component_added", handler = function(...) return self:componentAdded(...) end},
+        COMPONENT_REMOVED = {event_type = "component_removed", handler = function(...) return self:componentRemoved(...) end},
+        COMPONENT_AVAILABLE = {event_type = "component_available", handler = function(...) return self:componentAvailable(...) end},
+        COMPONENT_UNAVAILABLE = {event_type = "component_unavailable", handler = function(...) return self:componentUnavailable(...) end},
+        INTERRUPTED = {event_type = "interrupted", handler = function(...) return self:interrupted(...) end},
+        MODEM_MESSAGE = {event_type = "modem_message", handler = function(...) return self:modemMessage(...) end},
+        SCREEN_RESIZED = {event_type = "screen_resized", handler = function(...) return self:screenResized(...) end},
+        TERM_AVAILABLE = {event_type = "term_available", handler = function() return self:termAvailable() end},
+        TERM_UNAVAILABLE = {event_type = "term_unavailable", handler = function() return self:termUnavailable() end},
+        REDSTONE_CHANGED = {event_type = "redstone_changed", handler = function(...) return self:redstoneChanged(...) end},
+        MOTION = {event_type = "motion", handler = function(...) return self:motion(...) end},
+        INVENTORY_CHANGED = {event_type = "inventory_changed", handler = function(...) return self:inventoryChanged(...) end},
+        BUS_MESSAGE = {event_type = "bus_message", handler = function(...) return self:busMessage(...) end},
+        CARRIAGE_MOVED = {event_type = "carriage_moved", handler = function(...) return self:carriageMoved(...) end}
+        }
+    end
 
 return event

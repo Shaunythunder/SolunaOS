@@ -5,7 +5,6 @@ local gpu = _G.primary_gpu
 local cursor = _G.cursor
 local BLACK = 0x000000
 local WHITE = 0xFFFFFF
-local active_scroll_buffer = _G.scroll_buffer
 
 local draw = {}
 
@@ -58,15 +57,15 @@ local draw = {}
     end
 
     -- Renders text in a terminal fashion, line by line
-    ---@param input_str string
+    ---@param raw_line string
     ---@param x_pos number|nil
     ---@param y_pos number|nil
     ---@param foreground number|nil hex only, use render.getRGB() white default
     ---@param background number|nil hex only, use render.getRGB() black default
-    ---@return number x, number y
-    function draw.termText(input_str, x_pos, y_pos, foreground, background)
+    function draw.termText(raw_line, x_pos, y_pos, foreground, background)
         local height = _G.height
         local width = _G.width
+        local active_scroll_buffer = _G.scroll_buffer
         local x_home = x_pos or cursor:getX()
         local home_y = y_pos or cursor:getHomeY()
         local foreground = foreground or WHITE
@@ -78,39 +77,39 @@ local draw = {}
             gpu.fill(1, home_y + 1, width, y_below, " ")
         end
         
-        local lines = {}
-        for newline in tostring(input_str):gmatch("([^\n]*)\n?") do
-            table.insert(lines, newline)
+         local lines = {}
+        for actual_line in raw_line:gmatch("([^\n]*)\n?") do
+            table.insert(lines, actual_line)
         end
 
-        local draw_y = home_y
-        local relative_x = 1
-        for _, line_text in ipairs(lines) do
-            local string_length = #line_text
-            local cursor_obj = 1
-            while string_length + cursor_obj > width do
-                local line = line_text:sub(1, width)
-                gpu.fill(1, draw_y, width, 1, " ")
-                gpu.set(1, draw_y, line)
-                draw_y = draw_y + 1
-                line_text = line_text:sub(width + 1)
-                string_length = #line_text
-                if draw_y > height and scroll_buffer then
-                    scroll_buffer:pushUp()
-                    gpu.fill(1, home_y, width, 1, " ")
-                    home_y = home_y - 1
-                    gpu.fill(1, home_y, width, 1, " ")
-                    gpu.set(1, home_y, line)
-                    cursor:setHomeY(home_y)
+        local display_lines = {}
+        for _, line in ipairs(lines) do
+            while #line > 0 do
+                if #line > _G.width then
+                    local wrapped_line = line:sub(1, _G.width)
+                    table.insert(display_lines, wrapped_line)
+                    line = line:sub(_G.width + 1)
+                else
+                    table.insert(display_lines, line)
+                    break
                 end
             end
-            
-            relative_x = string_length
-            ----gpu.fill(1, draw_y, width, 1, " ")
-            gpu.set(1, draw_y, line_text)
         end
-        local relative_y = draw_y - home_y + 1
-        return relative_x, relative_y
+
+        gpu.fill(1, home_y, width, #display_lines, " ")
+        for _, line_text in ipairs(display_lines) do
+            if home_y > height then
+                if active_scroll_buffer then
+                    active_scroll_buffer:pushUp()
+                    home_y = home_y - 1
+                    cursor:setHomeY(home_y)
+                else
+                    break
+                end
+            end
+            gpu.set(x_home, home_y, line_text)
+            home_y = home_y + 1
+        end
     end
 
     --- Draws a box from start xy coordinates. Lineweight determines the thickness.
