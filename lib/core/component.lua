@@ -87,6 +87,7 @@ component_manager.__index = component_manager
     --- Finds all registered hardware components of specified type.
     --- @param component_type string
     --- @return table|nil component_list
+    --- @return string|nil error
     function component_manager:findComponentsByType(component_type)
         if component_type == nil then
             return {}, "Error: nil parameter"

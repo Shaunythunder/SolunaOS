@@ -1,6 +1,8 @@
 -- lib/core/event.lua
 -- Provides core event handling functionality for SolunaOS
 
+local fs = require("filesystem")
+
 local event = {}
 event.__index = event
 
@@ -97,6 +99,12 @@ event.__index = event
             local proxy = component.proxy(address)
             if proxy then
                 component_manager:addComponent(component_type, address, proxy)
+                if component_type == "filesystem" and address ~= _G.BOOT_ADDRESS then
+                    local ok, err = pcall(fs.mount, address)
+                    if not ok then
+                        print("Error auto-mounting filesystem " .. address .. ": " .. err)
+                    end
+                end
                 return true
             end
         end
@@ -111,6 +119,10 @@ event.__index = event
         local component_manager = _G.component_manager
         if component_manager then
             component_manager:removeComponent(component_type, address)
+            if component_type == "filesystem" then
+                local mnt_point = fs.concat("/mnt/", string.sub(address, 1, 3))
+                fs.unmount(mnt_point)
+            end
             return true
         end
         return false

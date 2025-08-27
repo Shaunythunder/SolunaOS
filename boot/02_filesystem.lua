@@ -1,0 +1,24 @@
+-- /boot/02_filesystem.lua
+-- Initializes the filesystem and mounts any available disks
+
+local component = _G.component_manager
+local fs = require("filesystem")
+local os = require("os")
+
+_G.mounted_filesystems = {}
+local attached_filesystems = component:findComponentsByType("filesystem")
+
+for _, filesystem in ipairs(attached_filesystems) do
+    local address = filesystem.address
+    if address ~= _G.BOOT_ADDRESS then
+        local ok, err = pcall(fs.mount, address)
+        if not ok then
+            print("Error mounting filesystem at " .. address .. ": " .. err)
+        end
+        os.sleep(0)
+    end
+end
+
+local Shell = require("shell")
+local shell = Shell.new()
+shell:run()

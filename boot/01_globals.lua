@@ -1,4 +1,5 @@
 -- boot/01_globals.lua
+-- Sets up global variables and settings
 
 _G.width, _G.height = _G.primary_gpu.getResolution()
 _G.display_available = true
@@ -29,7 +30,7 @@ _G.event = event
 
 
 local terminal = require("terminal")
-local Shell = require("shell")
+
 
 --_G._print_y = nil -- cleanup
 --_G.bootPrint = nil -- cleanup
@@ -43,12 +44,8 @@ _G.print = function(...)
     terminal.writeBuffered(_G.scroll_buffer, table.concat(output, " "))
 end
 
-local shell = Shell.new()
-
-
 print("SolunaOS initializing...")
 
-shell:run()
 
 
 

@@ -3,7 +3,7 @@
 -- File metatables not to be confused with Lua object metatables
 -- Contents are located in (file or dir).metatable.content
 
-local OS_FILESYSTEM = _G.OS_FILESYSTEM
+local filesystem = _G.OS_FILESYSTEM
 local os = require("os")
 
 local filesystem = {}
@@ -17,6 +17,21 @@ local filesystem = {}
             table.insert(dirs, dir)
         end
         return dirs
+    end
+
+    function filesystem.resolveIfMount(abs_path)
+        local ok, err = filesystem.validateType(abs_path, "s")
+        if not ok then
+            return nil, err
+        end
+
+        for mnt_point, filesystem_address in pairs(_G.mounted_filesystems) do
+            if abs_path:find(mnt_point, 1, true) == 1 then
+                local relative_path = abs_path:sub(#mnt_point + 1)
+                return filesystem_address, relative_path
+            end
+        end
+        return nil, abs_path
     end
 
     function filesystem.validateObject(file_object)
@@ -59,13 +74,24 @@ local filesystem = {}
         if mode == "s" then
             return true, nil
         end
-        
-        if not OS_FILESYSTEM.exists(abs_path) then
+
+        local filesystem_addr, relative_path = filesystem.resolveIfMount(abs_path)
+        local exists
+        local is_directory
+        if filesystem_addr then
+            exists = component.invoke(filesystem_addr, "exists", relative_path)
+            is_directory = component.invoke(filesystem_addr, "isDirectory", relative_path)
+        else
+            exists = filesystem.exists(abs_path)
+            is_directory = filesystem.isDirectory(abs_path)
+        end
+
+        if not exists then
             return false, "File or directory does not exist"
         end
-        if mode == "f" and OS_FILESYSTEM.isDirectory(abs_path) then
+        if mode == "f" and is_directory then
             return false, "File expected, got directory"
-        elseif mode == "d" and not OS_FILESYSTEM.isDirectory(abs_path) then
+        elseif mode == "d" and not is_directory then
             return false, "Directory expected, got file"
         end
         return true, nil
@@ -84,41 +110,6 @@ local filesystem = {}
                 file_path = "/"
             end
         return file_path, file_name
-    end
-
-    --- SLATED FOR DELETION PENDING REAL FILESYSTEM INTEGRATION
-    --- Gets the path table for a given absolute path.
-    --- @param abs_path string
-    --- @return table|nil path_table
-    function filesystem.getPathMetatable(abs_path)
-        local path_metatable = disk["/"]
-        if abs_path == "/" then
-            return path_metatable
-        end
-        local directories = filesystem.splitPath(abs_path)
-        for _, directory in ipairs(directories) do
-            if not path_metatable or not path_metatable.contents or not path_metatable.contents[directory] then
-                return nil
-            end
-            path_metatable = path_metatable.contents[directory]
-        end
-        return path_metatable
-    end
-
-    --- SLATED FOR DELETION PENDING REAL FILESYSTEM INTEGRATION
-    function filesystem.getMntMetatable(mnt_disk, abs_path)
-        local path_metatable = mnt_disk["/"]
-        if abs_path == "/" then
-            return path_metatable
-        end
-        local directories = filesystem.splitPath(abs_path)
-        for _, directory in ipairs(directories) do
-            if not path_metatable or not path_metatable.contents or not path_metatable.contents[directory] then
-                return nil
-            end
-            path_metatable = path_metatable.contents[directory]
-        end
-        return path_metatable
     end
 
     --- Opens a file in the specified mode.
@@ -149,7 +140,15 @@ local filesystem = {}
             end
         end
 
-        local handle = OS_FILESYSTEM.open(abs_path, mode)
+        local filesystem_addr, relative_path = filesystem.resolveIfMount(abs_path)
+        local handle
+        
+        if filesystem_addr then
+            handle = component.invoke(filesystem_addr, "open", relative_path, mode)
+        else
+            handle = OS_FILESYSTEM.open(abs_path, mode)
+        end
+
         if not handle then
             return nil, "Failed to open file: " .. abs_path
         end
@@ -157,7 +156,7 @@ local filesystem = {}
         return {
             handle = handle,
             mode = mode,
-            hardware_component = OS_FILESYSTEM
+            hardware_component = filesystem_addr or OS_FILESYSTEM
         }
     end
 
@@ -181,7 +180,12 @@ local filesystem = {}
             end
         end
 
-        local data = file_object.hardware_component.read(file_object.handle, index_pos)
+        local data
+        if type(file_object.hardware_component) == "string" then
+            data = component.invoke(file_object.hardware_component, "read", file_object.handle, index_pos)
+        else
+            data = file_object.hardware_component.read(file_object.handle, index_pos)
+        end
 
         if data == nil then
             return "", "End of file reached"
@@ -206,7 +210,12 @@ local filesystem = {}
             return nil, err
         end
 
-        local success = file_object.hardware_component.write(file_object.handle, data)
+        local success
+        if type(file_object.hardware_component) == "string" then
+            success = component.invoke(file_object.hardware_component, "write", file_object.handle, data)
+        else
+            success = file_object.hardware_component.write(file_object.handle, data)
+        end
 
         if not success then
             return nil, "Failed to write data to file"
@@ -225,8 +234,12 @@ local filesystem = {}
             return nil, err
         end
 
-        file_object.hardware_component.close(file_object.handle)
-
+        if type(file_object.hardware_component) == "string" then
+            component.invoke(file_object.hardware_component, "close", file_object.handle)
+        else
+            file_object.hardware_component.close(file_object.handle)
+        end
+        
         file_object.closed = true
         return true, nil
     end
@@ -252,7 +265,12 @@ local filesystem = {}
             return nil, "bad argument (whence): invalid value, must be 'set', 'cur', or 'end'"
         end
 
-        local new_pos = file_object.hardware_component.seek(file_object.handle, whence, pos)
+        local new_pos
+        if type(file_object.hardware_component) == "string" then
+            new_pos = component.invoke(file_object.hardware_component, "seek", file_object.handle, whence, pos)
+        else
+            new_pos = file_object.hardware_component.seek(file_object.handle, whence, pos)
+        end
         
         if not new_pos then
             return nil, "Failed to seek in file"
@@ -265,9 +283,12 @@ local filesystem = {}
     --- @param abs_path string
     --- @return any result_or_error
     function filesystem.exists(abs_path)
-        local ok, err = filesystem.validateType(abs_path, "s")
-        if not ok then
-            return err
+       local filesystem_addr, relative_path = filesystem.resolveIfMount(abs_path)
+        local handle
+        
+        if filesystem_addr then
+            handle = component.invoke(filesystem_addr, "exists", relative_path)
+            return handle
         else
             return OS_FILESYSTEM.exists(abs_path)
         end
@@ -277,12 +298,15 @@ local filesystem = {}
     --- @param abs_path string
     --- @return any contents
     function filesystem.list(abs_path)
-        local ok, err = filesystem.validateType(abs_path, "d")
-        if not ok then
-            return err
+       local filesystem_addr, relative_path = filesystem.resolveIfMount(abs_path)
+        local handle
+        
+        if filesystem_addr then
+            handle = component.invoke(filesystem_addr, "list", relative_path)
+            return handle
+        else
+            return OS_FILESYSTEM.list(abs_path)
         end
-
-        return OS_FILESYSTEM.list(abs_path)
     end
 
     --- Check if a path is a directory.
@@ -306,15 +330,32 @@ local filesystem = {}
             return nil, "bad argument (path): invalid directory path"
         end
 
-        if OS_FILESYSTEM.exists(path) then
-            if OS_FILESYSTEM.isDirectory(path) then
+        local filesystem_addr, relative_path = filesystem.resolveIfMount(path)
+        local exists, isDirectory, success
+
+        if filesystem_addr then
+            exists = component.invoke(filesystem_addr, "exists", relative_path)
+            if exists then
+                isDirectory = component.invoke(filesystem_addr, "isDirectory", relative_path)
+            else
+                success = component.invoke(filesystem_addr, "makeDirectory", relative_path)
+            end
+        else
+            exists = filesystem.exists(path)
+            if exists then
+                isDirectory = filesystem.isDirectory(path)
+            else
+                success = OS_FILESYSTEM.makeDirectory(path)
+            end
+        end
+
+        if exists then
+            if isDirectory then
                 return nil, "Directory already exists"
             else
                 return nil, "File with that name already exists"
             end
         end
-
-        local success = OS_FILESYSTEM.makeDirectory(path)
 
         if not success then
             return nil, "Failed to create directory"
@@ -328,13 +369,13 @@ local filesystem = {}
     --- @return boolean|nil success
     --- @return string|nil error
     local function recursionCopy(origin_path, destination_path)
-        if OS_FILESYSTEM.isDirectory(origin_path) then
-            local success = OS_FILESYSTEM.makeDirectory(destination_path)
+        if filesystem.isDirectory(origin_path) then
+            local success = filesystem.makeDirectory(destination_path)
             if not success then
                 return nil, "Failed to create directory: " .. destination_path
             end
 
-            local contents = OS_FILESYSTEM.list(origin_path)
+            local contents = filesystem.list(origin_path)
             for _, item in ipairs(contents) do
                 local item_origin_path = origin_path .. "/" .. item
                 local item_destination_path = destination_path .. "/" .. item
@@ -345,25 +386,25 @@ local filesystem = {}
             end
             return true, nil
         else
-            local source_file = OS_FILESYSTEM.open(origin_path, "r")
+            local source_file = filesystem.open(origin_path, "r")
             if not source_file then
                 return nil, "Failed to open source file: " .. origin_path
             end
-            local destination_file = OS_FILESYSTEM.open(destination_path, "w")
+            local destination_file = filesystem.open(destination_path, "w")
             if not destination_file then
-                OS_FILESYSTEM.close(source_file)
+                filesystem.close(source_file)
                 return nil, "Failed to open destination file: " .. destination_path
             end
             
             while true do
-                local data = OS_FILESYSTEM.read(source_file, 4096)
+                local data = filesystem.read(source_file, 4096)
                 if not data then
                     break
                 end
-                OS_FILESYSTEM.write(destination_file, data)
+                filesystem.write(destination_file, data)
             end
-            OS_FILESYSTEM.close(source_file)
-            OS_FILESYSTEM.close(destination_file)
+            filesystem.close(source_file)
+            filesystem.close(destination_file)
             return true, nil
         end
     end
@@ -383,15 +424,15 @@ local filesystem = {}
             end
         end
 
-        if not OS_FILESYSTEM.exists(origin_path) then
+        if not filesystem.exists(origin_path) then
             return nil, "bad argument (origin): does not exist"
         end
 
-        if OS_FILESYSTEM.exists(destination_path) then
+        if filesystem.exists(destination_path) then
             return nil, "bad argument (destination): file already exists"
         end
 
-        if OS_FILESYSTEM.isDirectory(origin_path) and destination_path:sub(1, #origin_path) == origin_path then
+        if filesystem.isDirectory(origin_path) and destination_path:sub(1, #origin_path) == origin_path then
             return nil, "bad argument (destination): cannot copy directory"
         end
 
@@ -424,12 +465,12 @@ local filesystem = {}
             return nil, "bad argument (path): invalid path"
         end
 
-        if not OS_FILESYSTEM.exists(abs_path) then
+        if not filesystem.exists(abs_path) then
             return nil, "bad argument (path): path does not exist"
         end
 
-        if OS_FILESYSTEM.isDirectory(abs_path) then
-            local contents = OS_FILESYSTEM.list(abs_path)
+        if filesystem.isDirectory(abs_path) then
+            local contents = filesystem.list(abs_path)
             for _, item in ipairs(contents) do
                 local item_path = abs_path .. "/" .. item
                 local ok, err = filesystem.removeRecursive(item_path)
@@ -439,7 +480,7 @@ local filesystem = {}
             end
         end
 
-        local success = OS_FILESYSTEM.remove(abs_path)
+        local success = filesystem.remove(abs_path)
         if not success then
             return nil, "Failed to remove: " .. abs_path
         end
@@ -455,20 +496,27 @@ local filesystem = {}
             return nil, "bad argument (path): invalid path"
         end
 
-        if not OS_FILESYSTEM.exists(abs_path) then
+        if not filesystem.exists(abs_path) then
             return nil, "bad argument (path): file or directory does not exist"
         end
 
-        if OS_FILESYSTEM.isDirectory(abs_path) then
-            local contents = OS_FILESYSTEM.list(abs_path)
+        if filesystem.isDirectory(abs_path) then
+            local contents = filesystem.list(abs_path)
             if #contents > 0 then
                 return nil, "error: directory not empty"
             end
         end
 
-        local success = OS_FILESYSTEM.remove(abs_path)
+        local filesystem_addr, relative_path = filesystem.resolveIfMount(abs_path)
+        local success
+
+        if filesystem_addr then
+            success = component.invoke(filesystem_addr, "remove", relative_path)
+        else
+            success = OS_FILESYSTEM.remove(abs_path)
+        end
         if not success then
-            return nil, "Failed to remove: " .. abs_path
+            return nil, "Failed to remove file or directory"
         end
 
         return true, nil
@@ -484,15 +532,23 @@ local filesystem = {}
             return nil, err
         end
 
-        if not OS_FILESYSTEM.exists(abs_path) then
+        if not filesystem.exists(abs_path) then
             return nil, "bad argument (path): file or directory does not exist"
         end
 
-        if OS_FILESYSTEM.isDirectory(abs_path) then
+        if filesystem.isDirectory(abs_path) then
             return nil, "bad argument (path): cannot get size of directory"
         end
 
-        local size = OS_FILESYSTEM.size(abs_path)
+        local filesystem_addr, relative_path = filesystem.resolveIfMount(abs_path)
+        local size
+
+        if filesystem_addr then
+            size = component.invoke(filesystem_addr, "size", relative_path)
+        else
+            size = OS_FILESYSTEM.size(abs_path)
+        end
+
         if not size then
             return nil, "Failed to get size of file"
         end
@@ -500,63 +556,35 @@ local filesystem = {}
         return size, nil
     end
 
-    --- SLATED FOR DELETION
-    --- @param disk_to_mnt table
-    --- @return string|nil mnt_address
-    --- @return string|nil err
-    function filesystem.mount(disk_to_mnt)
-        local mnt_metatable = filesystem.getPathMetatable("/mnt")
-        if not mnt_metatable then
-            filesystem.makeDirectory("/mnt")
-            mnt_metatable = filesystem.getPathMetatable("/mnt")
-        end
 
-        local tries = 0
-        local mnt_name
-        repeat
-            mnt_name = tostring(string.char(math.random(97, 122)) .. math.floor(math.random(10, 99)))
-            tries = tries + 1
-        until not mnt_metatable.contents[mnt_name] or tries > 100
 
-        if tries > 100 then
-            return nil, "Unable to create mount with unique name"
-        end
-
-        local mnt_disk_metatable = filesystem.getMntMetatable(disk_to_mnt, "/")
-
-        mnt_metatable.contents[mnt_name] = mnt_disk_metatable
-        local mnt_addr = "/mnt/" .. mnt_name
-
+    function filesystem.mount(filesystem_addr)
+        -- Create mount directory (your existing code)
+        local mnt_addr = "/mnt/" .. string.sub(filesystem_addr, 1, 3)
+        filesystem.makeDirectory(mnt_addr)
+        
+        -- Register the mapping
+        _G.mounted_filesystems[mnt_addr] = filesystem_addr
+        
         return mnt_addr
     end
 
-    --- SLATED FOR DELETION
-    --- Unmount a disk from a mount point.
-    --- @param abs_path string
-    --- @return boolean|nil success
-    --- @return string|nil err
-    function filesystem.unmount(abs_path)
-        if type(abs_path) ~= "string" or abs_path == "" or abs_path == "/" then
-            return nil, "bad argument (target): must be valid path"
-        end
 
-        local parent_path, entry_name = filesystem.validatePath(abs_path)
-        local parent_metatable = filesystem.getPathMetatable(parent_path)
-    
-        if not parent_metatable.contents[entry_name] then
-            return nil, "bad argument (target): mount point does not exist"
+    function filesystem.unmount(mnt_addr)
+        if _G.mounted_filesystems[mnt_addr] then
+            _G.mounted_filesystems[mnt_addr] = nil
+            filesystem.removeRecursive(mnt_addr)
+            return true
         end
-
-        parent_metatable.contents[entry_name] = nil
-        return true
+        return false, "Mount point not found"
     end
 
     --- Generates temp file with random name
     --- @return string|nil temp_file_path
     --- @return string|nil err
     function filesystem.tempFile()
-        if not OS_FILESYSTEM.exists("/tmp") then
-            local ok = OS_FILESYSTEM.makeDirectory("/tmp")
+        if not filesystem.exists("/tmp") then
+            local ok = filesystem.makeDirectory("/tmp")
             if not ok then
                 return nil, "Failed to create temporary directory"
             end
@@ -569,17 +597,17 @@ local filesystem = {}
             temp_file_name = "tmp_" .. tostring(os.uptime()) .. "_" .. tostring(math.random(1000, 9999))
             temp_file_path = "/tmp/" .. temp_file_name
             tries = tries + 1
-        until not OS_FILESYSTEM.exists("/tmp/" .. temp_file_name) or tries > 100
+        until not filesystem.exists("/tmp/" .. temp_file_name) or tries > 100
 
         if tries > 100 then
             return nil, "Unable to create temporary file with unique name"
         end
 
-        local handle = OS_FILESYSTEM.open("/tmp/" .. temp_file_name, "w")
+        local handle = filesystem.open("/tmp/" .. temp_file_name, "w")
         if not handle then
             return nil, "Failed to create temporary file"
         end
-        OS_FILESYSTEM.close(handle)
+        filesystem.close(handle)
 
         return temp_file_path, nil
     end
