@@ -1,6 +1,12 @@
 -- boot/01_globals.lua
 
 _G.width, _G.height = _G.primary_gpu.getResolution()
+_G.display_available = true
+
+local Component_manager = require("component")
+local component_manager = Component_manager.new()
+_G.component_manager = component_manager
+
 
 _G.fps = 0.05
 local os = require("os")

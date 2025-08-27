@@ -2,7 +2,7 @@
 -- Provides core event handling functionality for SolunaOS
 
 local event = {}
-event.__init = event
+event.__index = event
 
     event.new = function()
         local self = setmetatable({}, { __index = event })
@@ -87,12 +87,33 @@ event.__init = event
         return event_type, screen_addr, x_pos, y_pos, player_name
     end
 
-    function event:componentAdded(event_type, address, component_type)
-        return event_type, address, component_type
+    --- Hotplugging. Takes address makes proxy and then adds to registry.
+    --- @param address string
+    --- @param component_type string
+    --- @return boolean success
+    function event:componentAdded(_, address, component_type)
+        local component_manager = _G.component_manager
+        if component_manager then
+            local proxy = component.proxy(address)
+            if proxy then
+                component_manager:addComponent(component_type, address, proxy)
+                return true
+            end
+        end
+        return false
     end
 
-    function event:componentRemoved(event_type, address, component_type)
-        return event_type, address, component_type
+    --- Hotplugging. Removes from registry.
+    --- @param address string
+    --- @param component_type string
+    --- @return boolean success
+    function event:componentRemoved(_, address, component_type)
+        local component_manager = _G.component_manager
+        if component_manager then
+            component_manager:removeComponent(component_type, address)
+            return true
+        end
+        return false
     end
 
     function event:componentAvailable(event_type, address, component_type)

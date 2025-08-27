@@ -6,7 +6,7 @@ local ls = {}
     function ls.execute(args, input_data, shell)
         local directory = args[1] or shell.current_dir
         local files = fs.list(directory)
-        if files then
+        if files and type(files) == "table" then
             return table.concat(files, " ")
         else
             return "Error: Unable to list directory " .. directory

@@ -4,7 +4,7 @@ do
     local component_invoke = component.invoke
     
     local addr, invoke = computer.getBootAddress(), component_invoke
-    ---@param file string -- The file to load.
+    ---@param file string
     local function loadfile(file)
         local handle = assert(invoke(addr, "open", file))
         local buffer = ""
@@ -20,15 +20,15 @@ do
     end
 
     --- Detect a hardware component(s) and save in register
-    ---@param name string -- The name of the hardware component/API type.
-    ---@return table|nil  -- The address and proxy for the component, or nil if not found.
-    local function detectHardware(name)
+    ---@param component_type string -- The name of the hardware component/API type.
+    ---@return table|nil component -- The address and proxy for the component, or nil if not found.
+    local function detectHardware(component_type)
         local devices = {}
-        for address in component.list(name, true) do
+        for address in component.list(component_type, true) do
             local proxy = component.proxy(address)
             table.insert(devices, {
-                address = address,  -- string
-                proxy   = proxy     -- table (methods, .address, .type)
+                address = address,
+                proxy   = proxy
             })
         end
         if #devices > 0 then

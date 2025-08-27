@@ -44,16 +44,19 @@ local terminal = {}
         cursor:setPosition(#prepend_text + 1, cursor:getHomeY())
         local input_buffer = text_buffer.new()
         while true do
-            local character = nil
+            local character
+            local output
             while character == nil do
                 cursor:show()
-                character = event:listen(0.5)
-                if character ~= nil then
+                output = event:listen(0.5)
+                if output ~= nil and type(output) == "string" then
+                    character = output
                     break
                 end
                 cursor:hide()
-                character = event:listen(0.5)
-                if character ~= nil then
+                output = event:listen(0.5)
+                if output ~= nil and type(output) == "string" then
+                    character = output
                     break
                 end
             end
