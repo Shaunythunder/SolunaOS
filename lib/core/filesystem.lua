@@ -20,14 +20,18 @@ local filesystem = {}
     end
 
     function filesystem.resolveIfMount(abs_path)
-        local ok, err = filesystem.validateType(abs_path, "s")
-        if not ok then
-            return nil, err
+        if type(abs_path) ~= "string" then
+            return nil, "bad argument (abs_path): string expected, got " .. type(abs_path)
         end
-
-        for mnt_point, filesystem_address in pairs(_G.mounted_filesystems) do
-            if abs_path:find(mnt_point, 1, true) == 1 then
-                local relative_path = abs_path:sub(#mnt_point + 1)
+        
+        if abs_path:sub(1, 5) == "/mnt/" then
+            local mount_dir = abs_path:sub(1, 8) -- "/mnt/xyz"
+            if _G.mounted_filesystems[mount_dir] then
+                local filesystem_address = _G.mounted_filesystems[mount_dir]
+                local relative_path = abs_path:sub(9) -- Path after the mount point
+                if relative_path == "" then
+                    relative_path = "/"
+                end
                 return filesystem_address, relative_path
             end
         end
@@ -82,8 +86,8 @@ local filesystem = {}
             exists = component.invoke(filesystem_addr, "exists", relative_path)
             is_directory = component.invoke(filesystem_addr, "isDirectory", relative_path)
         else
-            exists = filesystem.exists(abs_path)
-            is_directory = filesystem.isDirectory(abs_path)
+            exists = OS_FILESYSTEM.exists(abs_path)
+            is_directory = OS_FILESYSTEM.isDirectory(abs_path)
         end
 
         if not exists then
@@ -326,42 +330,46 @@ local filesystem = {}
     ---@return true|nil result
     ---@return nil|string error
     function filesystem.makeDirectory(path)
-        if type(path) ~= "string"  or path == "" or path == "/" then
-            return nil, "bad argument (path): invalid directory path"
-        end
-
-        local filesystem_addr, relative_path = filesystem.resolveIfMount(path)
-        local exists, isDirectory, success
-
-        if filesystem_addr then
-            exists = component.invoke(filesystem_addr, "exists", relative_path)
-            if exists then
-                isDirectory = component.invoke(filesystem_addr, "isDirectory", relative_path)
-            else
-                success = component.invoke(filesystem_addr, "makeDirectory", relative_path)
-            end
-        else
-            exists = filesystem.exists(path)
-            if exists then
-                isDirectory = filesystem.isDirectory(path)
-            else
-                success = OS_FILESYSTEM.makeDirectory(path)
-            end
-        end
-
-        if exists then
-            if isDirectory then
-                return nil, "Directory already exists"
-            else
-                return nil, "File with that name already exists"
-            end
-        end
-
-        if not success then
-            return nil, "Failed to create directory"
-        end
-        return true, nil
+    
+    if type(path) ~= "string" or path == "" or path == "/" then
+        return nil, "bad argument (path): invalid directory path"
     end
+
+    local filesystem_addr, relative_path = filesystem.resolveIfMount(path)
+    
+    local exists, isDirectory, success
+
+    if filesystem_addr then
+        exists = component.invoke(filesystem_addr, "exists", relative_path)
+        if exists then
+            isDirectory = component.invoke(filesystem_addr, "isDirectory", relative_path)
+        else
+            success = component.invoke(filesystem_addr, "makeDirectory", relative_path)
+        end
+    else
+        exists = OS_FILESYSTEM.exists(path)
+        
+        if exists then
+            isDirectory = OS_FILESYSTEM.isDirectory(path)
+        else
+            success = OS_FILESYSTEM.makeDirectory(path)
+        end
+    end
+
+    if exists then
+        if isDirectory then
+            return nil, "Directory already exists"
+        else
+            return nil, "File with that name already exists"
+        end
+    end
+
+    if not success then
+        return nil, "Failed to create directory"
+    end
+    
+    return true, nil
+end
 
     --- Recursively copy a file or directory to a new location.
     --- @param origin_path string

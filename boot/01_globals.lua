@@ -4,6 +4,8 @@
 _G.width, _G.height = _G.primary_gpu.getResolution()
 _G.display_available = true
 
+_G.primary_gpu.fill(1, 1, width, height, " ") -- clear entire screen
+
 local Component_manager = require("component")
 local component_manager = Component_manager.new()
 _G.component_manager = component_manager

@@ -1,4 +1,3 @@
-local scroll_buffer = _G.scroll_buffer
 local fs = require("filesystem")
 local terminal = require("terminal")
 local os = require("os")
@@ -8,25 +7,27 @@ local shell = {}
 
     function shell.new()
         local self = setmetatable({}, shell)
-        self.scroll_buffer = scroll_buffer
-        self.current_dir = "/"
-        self.prompt = "SolunaOS # "
+        self.scroll_buffer = _G.scroll_buffer
+        self.current_dir = "/home"
+        self.access_level = "#"
+        self.prompt = self.current_dir .. " # "
         self.commands = {}
         return self
     end
 
+    -- Terminate the shell session and clean up RAM
     function shell:terminate()
-        self.scroll_buffer:clear()
+        _G.scroll_buffer:clear()
         for attribute in pairs(self) do
             self[attribute] = nil
         end
         setmetatable(self, nil)
     end
 
+    -- Main shell loop
     function shell:run()
         self:output("Welcome to SolunaOS Shell")
         self:output("Currently in alpha.")
-        _G.scroll_buffer = self.scroll_buffer
         while true do
             local line = self:input()
             if line then
@@ -45,19 +46,57 @@ local shell = {}
         shell:terminate()
     end
 
+    -- Get user input with prompt
+    --- @param prompt string
+    --- @return string prompt
     function shell:input(prompt)
         prompt = self.prompt
         return terminal.read(prompt)
     end
 
+    -- Output text to the terminal
+    ---@param text string
     function shell:output(text)
         terminal.writeBuffered(self.scroll_buffer, text)
     end
 
+    -- Update the shell prompt for CLI display
+    ---@param prompt string
     function shell:updatePrompt(prompt)
-        self.prompt = prompt
+        self.prompt = prompt .. " " .. self.access_level .. " "
     end
 
+    -- Get absolute path from relative path
+    ---@param rel_path string
+    ---@return string abs_path
+    function shell:getAbsPath(rel_path)
+        if rel_path:sub(1,1) == "/" then
+            return rel_path
+        else
+            if self.current_dir == "/" then
+                return fs.concat("/", rel_path)
+            else
+                return fs.concat(self.current_dir, rel_path)
+            end
+        end
+    end
+
+    -- Creates an empty command structure
+    function shell:createEmptyCommand()
+        return {
+            command = nil,
+            args = {},
+            output_redirect = nil,
+            append_redirect = false,
+            input_redirect = nil,
+            background = false,
+            chain_op = nil,
+        }
+    end
+
+    -- Parse user input into command and arguments and sends for tokenization
+    ---@param input string
+    ---@return any result
     function shell:parseInput(input)
         if not input or input:match("^%s*$") then
             return nil
@@ -75,6 +114,9 @@ local shell = {}
         return self:parseCommandStructure(tokens, input)
     end
 
+    -- Splits inputs into tokens for further processing and routing
+    ---@param input string
+    ---@return table tokens
     function shell:tokenizeInput(input)
         local tokens = {}
         local current = ""
@@ -117,26 +159,38 @@ local shell = {}
         return tokens
     end
 
-    function shell:handleEscapedCharacter(character)
-        if character == "n" then
+    -- Handles escaped characters in user input
+    ---@param escaped_character string
+    ---@return string restored_character
+    function shell:handleEscapedCharacter(escaped_character)
+        if escaped_character == "n" then
             return "\n"
-        elseif character == "t" then
+        elseif escaped_character == "t" then
             return "\t"
-        elseif character == "\r" then
+        elseif escaped_character == "\r" then
             return "\r"
         else
-            return character
+            return escaped_character
         end
     end
 
-    function shell:addToken(tokens, current)
-        if current ~= "" then
-            table.insert(tokens, current)
+    -- Adds current token to tokens list
+    ---@param tokens table
+    ---@param token string
+    function shell:addToken(tokens, token)
+        if token ~= "" then
+            table.insert(tokens, token)
         end
         return tokens, ""
     end
 
-    function shell:handleSpecialCharacter(tokens, current, character, input, i)
+    -- Handles special characters like |, ;, <, >, >>, &, && and assigns special functions
+    ---@param tokens table current list of tokens
+    ---@param in_process_token string current token being processed
+    ---@param character string current character being processed
+    ---@param input string original input string
+    ---@param i number iterator
+    function shell:handleSpecialCharacter(tokens, in_process_token, character, input, i)
         local special_characters = {
             ['|'] = '|',
             [';'] = ';',
@@ -149,21 +203,24 @@ local shell = {}
             end
         }
             if special_characters[character] then
-                tokens, current = self:addToken(tokens, current)
+                tokens, in_process_token = self:addToken(tokens, in_process_token)
                 if type(special_characters[character]) == "function" then
                     local result, new_i = table.unpack(special_characters[character](input, i))
                     table.insert(tokens, result)
-                    return tokens, current, new_i
+                    return tokens, in_process_token, new_i
                 else
                     table.insert(tokens, special_characters[character])
-                    return tokens, current
+                    return tokens, in_process_token, i
                 end
             else
-                current = current .. character
+                in_process_token = in_process_token .. character
             end
-        return tokens, current, i
+        return tokens, in_process_token, i
     end
 
+    -- Further processing of tokens to parse out wildcards and variables.
+    ---@param tokens table
+    ---@return table expanded_tokens
     function shell:expandTokens(tokens)
         for i, token in ipairs(tokens) do
             if token:match("%$") then
@@ -184,6 +241,9 @@ local shell = {}
         return tokens
     end
 
+    -- Expands environment variables in tokens
+    ---@param token string
+    ---@return string env_var
     function shell:expandVariables(token)
         local result = token
         result = result:gsub("%${([^}]+)}", function(variable)
@@ -195,6 +255,9 @@ local shell = {}
     return result
     end
 
+    -- Expands wildcards in tokens to match filesystem entries
+    ---@param pattern string
+    ---@return table results
     function shell:expandWildCards(pattern)
         local results = {}
         local directory = pattern:match("^(.*)/[^/]*$") or self.current_dir
@@ -216,6 +279,10 @@ local shell = {}
         return #results > 0 and results or {pattern}
     end
 
+    -- Builds out command structure with tokenized inputs.
+    ---@param tokens table
+    ---@param original_input string
+    ---@return table command_structure
     function shell:parseCommandStructure(tokens, original_input)
         local commands = {}
         local current_command = self:createEmptyCommand()
@@ -286,22 +353,16 @@ local shell = {}
         }
     end
 
-    function shell:createEmptyCommand()
-        return {
-            command = nil,
-            args = {},
-            output_redirect = nil,
-            append_redirect = false,
-            input_redirect = nil,
-            background = false,
-            chain_op = nil,
-        }
-    end
-
+    -- Checks if the command structure contains pipes
+    ---@param commands table
+    ---@return boolean yes_no
     function shell:hasPipes(commands)
         return #commands > 1
     end
 
+    -- Checks if the command structure contains redirection
+    ---@param commands table
+    ---@return boolean yes_no
     function shell:hasRedirects(commands)
         for _, cmd in ipairs(commands) do
             if cmd.output_redirect or cmd.input_redirect then
@@ -311,6 +372,9 @@ local shell = {}
         return false
     end
 
+    -- Checks if the command structure contains background execution
+    ---@param commands table
+    ---@return boolean yes_no
     function shell:hasBackground(commands)
         for _, cmd in ipairs(commands) do
             if cmd.background then
@@ -320,6 +384,9 @@ local shell = {}
         return false
     end
 
+    -- Executes the parsed command input by tabulating through the tokens and executing the parameters.
+    ---@param parsed_input table
+    ---@return string output
     function shell:execute(parsed_input)
         if not parsed_input or not parsed_input.commands then
             return "No command provided"
@@ -328,7 +395,7 @@ local shell = {}
         local results = {}
         local last_exit_code = 0
 
-        for i, command_structure in ipairs(parsed_input.commands) do
+        for _, command_structure in ipairs(parsed_input.commands) do
             local should_execute = true
 
             if command_structure.chain_op then
@@ -358,6 +425,9 @@ local shell = {}
         return table.concat(results, "\n")
     end
 
+    -- Executes a single command without piping
+    ---@param command_structure table
+    ---@return string output
     function shell:executeSingleCommand(command_structure)
         local command = command_structure.command
         local args = command_structure.args
@@ -400,6 +470,9 @@ local shell = {}
         return output, 0
     end
 
+    -- Executes a series of commands connected by pipes
+    ---@param commands table
+    ---@return string output
     function shell:executePipeline(commands)
         local data = ""
 
@@ -417,10 +490,16 @@ local shell = {}
         return data
     end
 
+    
+    -- Starts a command in the background without blocking the shell inputs
+    -- NOT IMPLEMENTED.
     function shell:startBackgroundJob(command_structure)
         self:output("Starting background job: " .. command_structure.command)
     end
 
+    -- Loads a command module by name and executes it
+    ---@param command_name string
+    ---@return table|nil command_module
     function shell:loadCommand(command_name)
         local command_paths = {
         "/lib/core/shell/commands/filesystem",

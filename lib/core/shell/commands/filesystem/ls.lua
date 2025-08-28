@@ -4,10 +4,26 @@ local ls = {}
 
     -- This command lists the files in a directory.
     function ls.execute(args, input_data, shell)
-        local directory = args[1] or shell.current_dir
+        local directory
+        if #args == 0 then
+            directory = shell.current_dir
+        elseif #args > 1 then
+            return "Usage: ls or ls [directory]"
+        else
+            directory = args[1]
+        end
         local files = fs.list(directory)
+        local objects = {}
         if files and type(files) == "table" then
-            return table.concat(files, " ")
+            for i, object in ipairs(files) do
+                if object:sub(-1) == "/" then
+                    object = object:sub(1, -2)
+                    table.insert(objects, object)
+                else
+                    table.insert(objects, object)
+                end
+            end
+            return table.concat(objects, " ")
         else
             return "Error: Unable to list directory " .. directory
         end

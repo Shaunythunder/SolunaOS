@@ -19,6 +19,10 @@ for _, filesystem in ipairs(attached_filesystems) do
     end
 end
 
+if not fs.exists("/home") then
+    fs.makeDirectory("/home")
+end
+
 local Shell = require("shell")
 local shell = Shell.new()
 shell:run()
