@@ -2,8 +2,9 @@
 -- Provides core filesystem functionality for SolunaOS
 -- File metatables not to be confused with Lua object metatables
 -- Contents are located in (file or dir).metatable.content
+-- Also manages mounts which use a virtual filesystem abstraction that is synced with the hardware updates.
 
-local filesystem = _G.OS_FILESYSTEM
+local OS_FILESYSTEM = _G.OS_FILESYSTEM
 local os = require("os")
 
 local filesystem = {}
@@ -19,6 +20,11 @@ local filesystem = {}
         return dirs
     end
 
+    --- Retrieves directory contents from a mounted filesystem structure
+    --- @param structure table
+    --- @param abs_path string
+    --- @return table|nil contents
+    --- @return string|nil error
     function filesystem.getDirectoryFromStructure(structure, abs_path)
         local mount_structure = structure
 
@@ -51,6 +57,11 @@ local filesystem = {}
         return dir_contents
     end
 
+    -- Retrieves a file from a mounted filesystem structure
+    ---@param structure table
+    ---@param abs_path string
+    ---@return table|nil contents
+    ---@return string|nil error
     function filesystem.getFileFromStructure(structure, abs_path)
         local mount_structure = structure
 
@@ -81,7 +92,11 @@ local filesystem = {}
         return mount_structure
     end
 
-
+    --- Resolves if a path is within a mounted filesystem
+    --- @param abs_path string
+    --- @return string|nil address
+    --- @return string|nil relative_path
+    --- @return table|nil structure
     function filesystem.resolveIfMount(abs_path)
         if type(abs_path) ~= "string" then
             return nil, "bad argument (abs_path): string expected, got " .. type(abs_path)
@@ -102,6 +117,10 @@ local filesystem = {}
         return nil, abs_path
     end
 
+    --- Validates a file object
+    --- @param file_object table
+    --- @return boolean result
+    --- @return string|nil error
     function filesystem.validateObject(file_object)
         local ok, err = filesystem.validateType(file_object, "t")
         if not ok then
@@ -402,52 +421,91 @@ local filesystem = {}
         end
     end
 
+    --- Creates a directory in a mounted filesystem and updates the structure cache
+    --- @param filesystem_addr string
+    --- @param relative_path string
+    --- @param structure table
+    --- @return boolean success
+    function filesystem.createDirectoryInMount(filesystem_addr, relative_path, structure)
+        local success = component.invoke(filesystem_addr, "makeDirectory", relative_path)
+
+        if success and structure then
+            local path_components = filesystem.splitPath(relative_path)
+            local dir_name = table.remove(path_components)
+
+            local parent_structure = structure
+            for _, component in ipairs(path_components) do
+                local found_key
+                if parent_structure[component] then
+                    found_key = component
+                elseif parent_structure[component .. "/"] then
+                    found_key = component .. "/"
+                end
+
+                if found_key and parent_structure[found_key].contents then
+                    parent_structure = parent_structure[found_key].contents
+                else
+                    return success
+                end
+            end
+
+            parent_structure[dir_name .. "/"] = {
+                isDirectory = true,
+                size = 0,
+                last_modified = component.invoke(filesystem_addr, "lastModified", relative_path),
+                contents = {}
+            }
+
+        end
+        return success
+    end
+
     --- Creates a directory in the desired path.
     ---@param path string
     ---@return true|nil result
     ---@return nil|string error
     function filesystem.makeDirectory(path)
-    
-    if type(path) ~= "string" or path == "" or path == "/" then
-        return nil, "bad argument (path): invalid directory path"
-    end
-
-    local filesystem_addr, relative_path = filesystem.resolveIfMount(path)
-    
-    local exists, isDirectory, success
-
-    if filesystem_addr then
-        exists = component.invoke(filesystem_addr, "exists", relative_path)
-        if exists then
-            isDirectory = component.invoke(filesystem_addr, "isDirectory", relative_path)
-        else
-            success = component.invoke(filesystem_addr, "makeDirectory", relative_path)
-        end
-    else
-        exists = OS_FILESYSTEM.exists(path)
         
+        if type(path) ~= "string" or path == "" or path == "/" then
+            return nil, "bad argument (path): invalid directory path"
+        end
+
+        local filesystem_addr, relative_path, structure = filesystem.resolveIfMount(path)
+        
+        local exists, isDirectory, success
+
+        if filesystem_addr then
+            exists = component.invoke(filesystem_addr, "exists", relative_path)
+            if exists then
+                isDirectory = component.invoke(filesystem_addr, "isDirectory", relative_path)
+            else
+                success = filesystem.createDirectoryInMount(filesystem_addr, relative_path, structure)
+            end
+        else
+            exists = OS_FILESYSTEM.exists(path)
+            
+            if exists then
+                isDirectory = OS_FILESYSTEM.isDirectory(path)
+            else
+                success = OS_FILESYSTEM.makeDirectory(path)
+            end
+        end
+
         if exists then
-            isDirectory = OS_FILESYSTEM.isDirectory(path)
-        else
-            success = OS_FILESYSTEM.makeDirectory(path)
+            if isDirectory then
+                return nil, "Directory already exists"
+            else
+                return nil, "File with that name already exists"
+            end
         end
-    end
 
-    if exists then
-        if isDirectory then
-            return nil, "Directory already exists"
-        else
-            return nil, "File with that name already exists"
+        if not success then
+            return nil, "Failed to create directory"
         end
-    end
-
-    if not success then
-        return nil, "Failed to create directory"
+        
+        return true, nil
     end
     
-    return true, nil
-end
-
     --- Recursively copy a file or directory to a new location.
     --- @param origin_path string
     --- @param destination_path string
@@ -541,6 +599,41 @@ end
         return true
     end
 
+    --- Removes a directory in a mounted filesystem and updates the structure cache
+    --- @param filesystem_addr string
+    --- @param relative_path string
+    --- @param structure table
+    --- @return boolean success
+    function filesystem.removeInMount(filesystem_addr, relative_path, structure)
+        local success = component.invoke(filesystem_addr, "remove", relative_path)
+
+        if success and structure then
+            local path_components = filesystem.splitPath(relative_path)
+            local dir_name = table.remove(path_components)
+
+            local parent_structure = structure
+            for _, component in ipairs(path_components) do
+                local found_key
+                if parent_structure[component] then
+                    found_key = component
+                elseif parent_structure[component .. "/"] then
+                    found_key = component .. "/"
+                end
+
+                if found_key and parent_structure[found_key].contents then
+                    parent_structure = parent_structure[found_key].contents
+                else
+                    return success
+                end
+            end
+
+            parent_structure[dir_name .. "/"] = nil
+            parent_structure[dir_name] = nil
+
+        end
+        return success
+    end
+
     --- Recursively remove a directory and its contents.
     --- @param abs_path string
     --- @return boolean|nil success
@@ -592,11 +685,11 @@ end
             end
         end
 
-        local filesystem_addr, relative_path = filesystem.resolveIfMount(abs_path)
+        local filesystem_addr, relative_path, structure = filesystem.resolveIfMount(abs_path)
         local success
 
         if filesystem_addr then
-            success = component.invoke(filesystem_addr, "remove", relative_path)
+            success = filesystem.removeInMount(filesystem_addr, relative_path, structure)
         else
             success = OS_FILESYSTEM.remove(abs_path)
         end
@@ -641,6 +734,9 @@ end
         return size, nil
     end
 
+    --- Builds a file structure cache for a mounted filesystem
+    --- @param filesystem_addr string
+    --- @return table structure
     function filesystem.buildMountFileStructure(filesystem_addr)
         local structure = {}
 
@@ -665,6 +761,9 @@ end
         return structure
     end
 
+    --- Mounts a filesystem and builds its structure cache
+    --- @param filesystem_addr string
+    --- @return string|nil mount_point
     function filesystem.mount(filesystem_addr)
         -- Create mount directory (your existing code)
         local mnt_addr = "/mnt/" .. string.sub(filesystem_addr, 1, 3)
@@ -679,7 +778,10 @@ end
         return mnt_addr
     end
 
-
+    --- Unmounts a filesystem and removes its structure cache
+    --- @param mnt_addr string
+    --- @return boolean success
+    --- @return string|nil err
     function filesystem.unmount(mnt_addr)
         if _G.mounted_filesystems[mnt_addr] then
             _G.mounted_filesystems[mnt_addr] = nil
