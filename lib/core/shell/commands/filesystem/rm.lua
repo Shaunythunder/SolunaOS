@@ -9,7 +9,7 @@ local rm = {}
             return "Usage: rm <file>"
         end
 
-        local filename = args[1]
+        local filename = shell:getAbsPath(args[1])
 
         if not fs.exists(filename) then
             return "Error: File does not exist: " .. filename

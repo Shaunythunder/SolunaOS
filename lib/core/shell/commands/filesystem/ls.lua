@@ -10,7 +10,7 @@ local ls = {}
         elseif #args > 1 then
             return "Usage: ls or ls [directory]"
         else
-            directory = args[1]
+            directory = shell:getAbsPath(args[1])
         end
         local files = fs.list(directory)
         local objects = {}

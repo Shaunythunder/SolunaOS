@@ -23,6 +23,14 @@ if not fs.exists("/home") then
     fs.makeDirectory("/home")
 end
 
+print("=== MOUNTED FILESYSTEMS ===")
+for mount_point, mount_info in pairs(_G.mounted_filesystems) do
+    print("Mount point: '" .. mount_point .. "'")
+    print("Address:", mount_info.address)
+    print("Structure exists:", mount_info.structure ~= nil)
+    print("---")
+end
+
 local Shell = require("shell")
 local shell = Shell.new()
 shell:run()

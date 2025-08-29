@@ -8,15 +8,15 @@ local cat = {}
             return "Usage: cat <file>"
         end
 
-        local filename = args[1]
+        local abs_path = shell:getAbsPath(args[1])
 
-        if not fs.exists(filename) then
-            return "Error: File does not exist: " .. filename
+        if not fs.exists(abs_path) then
+            return "Error: File does not exist: " .. abs_path
         end
 
-        local file = fs.open(filename, "r")
+        local file = fs.open(abs_path, "r")
         if not file then
-            return "Error: Unable to open file: " .. filename
+            return "Error: Unable to open file: " .. abs_path
         end
 
         local content = ""

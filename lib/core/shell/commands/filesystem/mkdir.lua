@@ -9,7 +9,7 @@ local mkdir = {}
             return "Usage: mkdir <directory>"
         end
 
-        local dirname = args[1]
+        local dirname = shell:getAbsPath(args[1])
 
         if fs.exists(dirname) then
             return "Error: Directory already exists: " .. dirname

@@ -9,8 +9,8 @@ local cp = {}
             return "Usage: cp <source> <destination>"
         end
 
-        local source = args[1]
-        local destination = args[2]
+        local source = shell:getAbsPath(args[1])
+        local destination = shell:getAbsPath(args[2])
 
         if not fs.exists(source) then
             return "Error: Source file does not exist: " .. source

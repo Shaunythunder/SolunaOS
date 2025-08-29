@@ -19,6 +19,69 @@ local filesystem = {}
         return dirs
     end
 
+    function filesystem.getDirectoryFromStructure(structure, abs_path)
+        local mount_structure = structure
+
+         if abs_path ~= "/" then
+            local path_components = filesystem.splitPath(abs_path)
+            for _, part in ipairs(path_components) do
+                local found_key
+                if mount_structure[part] then
+                    found_key = part
+                elseif mount_structure[part .. "/"] then
+                    found_key = part .. "/"
+                end
+                
+                if found_key and mount_structure[found_key].isDirectory and mount_structure[found_key].contents then
+                    mount_structure = mount_structure[found_key].contents
+                else
+                    return nil, "Path not found in mounted structure"
+                end
+            end
+        end
+
+        local dir_contents = {}
+        for object, metadata in pairs(mount_structure) do
+            if metadata.isDirectory then
+                table.insert(dir_contents, object .. "/")
+            else
+                table.insert(dir_contents, object)
+            end
+        end
+        return dir_contents
+    end
+
+    function filesystem.getFileFromStructure(structure, abs_path)
+        local mount_structure = structure
+
+        if abs_path ~= "/" then
+            local path_components = filesystem.splitPath(abs_path)
+            for i, part in ipairs(path_components) do
+                local found_key
+                if mount_structure[part] then
+                    found_key = part
+                elseif mount_structure[part .. "/"] then
+                    found_key = part .. "/"
+                end
+                if found_key then
+                    if i == #path_components then
+                        return mount_structure[found_key]
+                    else
+                        if mount_structure[found_key].contents then
+                            mount_structure = mount_structure[found_key].contents
+                        else
+                            return mount_structure[found_key]
+                        end
+                    end
+                else
+                    return nil, "Path not found in mounted structure"
+                end
+            end
+        end
+        return mount_structure
+    end
+
+
     function filesystem.resolveIfMount(abs_path)
         if type(abs_path) ~= "string" then
             return nil, "bad argument (abs_path): string expected, got " .. type(abs_path)
@@ -27,12 +90,13 @@ local filesystem = {}
         if abs_path:sub(1, 5) == "/mnt/" then
             local mount_dir = abs_path:sub(1, 8) -- "/mnt/xyz"
             if _G.mounted_filesystems[mount_dir] then
-                local filesystem_address = _G.mounted_filesystems[mount_dir]
+                local address = _G.mounted_filesystems[mount_dir].address
+                local structure = _G.mounted_filesystems[mount_dir].structure
                 local relative_path = abs_path:sub(9) -- Path after the mount point
                 if relative_path == "" then
                     relative_path = "/"
                 end
-                return filesystem_address, relative_path
+                return address, relative_path, structure
             end
         end
         return nil, abs_path
@@ -287,10 +351,12 @@ local filesystem = {}
     --- @param abs_path string
     --- @return any result_or_error
     function filesystem.exists(abs_path)
-       local filesystem_addr, relative_path = filesystem.resolveIfMount(abs_path)
+       local filesystem_addr, relative_path, structure = filesystem.resolveIfMount(abs_path)
         local handle
-        
-        if filesystem_addr then
+        if structure then
+            handle = filesystem.getFileFromStructure(structure, relative_path)
+            return handle ~= nil
+        elseif filesystem_addr then
             handle = component.invoke(filesystem_addr, "exists", relative_path)
             return handle
         else
@@ -302,10 +368,12 @@ local filesystem = {}
     --- @param abs_path string
     --- @return any contents
     function filesystem.list(abs_path)
-       local filesystem_addr, relative_path = filesystem.resolveIfMount(abs_path)
+       local filesystem_addr, relative_path, structure = filesystem.resolveIfMount(abs_path)
         local handle
         
-        if filesystem_addr then
+        if structure then 
+            return filesystem.getDirectoryFromStructure(structure, relative_path)
+        elseif filesystem_addr then
             handle = component.invoke(filesystem_addr, "list", relative_path)
             return handle
         else
@@ -317,11 +385,20 @@ local filesystem = {}
     --- @param abs_path string
     --- @return boolean result
     function filesystem.isDirectory(abs_path)
-        local ok, _ = filesystem.validateType(abs_path, "d")
-        if not ok then
-            return false
+        local filesystem_addr, relative_path, structure = filesystem.resolveIfMount(abs_path)
+
+        if structure then
+            if relative_path == "/" then
+                return true
+            else
+                local metadata = filesystem.getFileFromStructure(structure, relative_path)
+                return metadata and metadata.isDirectory or false
+            end
+           
+        elseif filesystem_addr then
+            return component.invoke(filesystem_addr, "isDirectory", relative_path)
         else
-            return true
+            return OS_FILESYSTEM.isDirectory(abs_path)
         end
     end
 
@@ -564,16 +641,41 @@ end
         return size, nil
     end
 
+    function filesystem.buildMountFileStructure(filesystem_addr)
+        local structure = {}
 
+        local function exploreAndCache(mnt_addr, cache_to_build)
+            local contents = component.invoke(filesystem_addr, "list", mnt_addr)
+            for _, object in ipairs(contents) do
+                local object_path = filesystem.concat(mnt_addr, object)
+                local is_dir = component.invoke(filesystem_addr, "isDirectory", object_path)
+
+                cache_to_build[object] = {
+                    isDirectory = is_dir,
+                    size = is_dir and 0 or component.invoke(filesystem_addr, "size", object_path),
+                    last_modified = component.invoke(filesystem_addr, "lastModified", object_path),
+                    contents = is_dir and {} or nil,
+                }
+                if is_dir then
+                    exploreAndCache(object_path, cache_to_build[object].contents)
+                end
+            end
+        end
+        exploreAndCache("/", structure)
+        return structure
+    end
 
     function filesystem.mount(filesystem_addr)
         -- Create mount directory (your existing code)
         local mnt_addr = "/mnt/" .. string.sub(filesystem_addr, 1, 3)
         filesystem.makeDirectory(mnt_addr)
-        
+        local structure = filesystem.buildMountFileStructure(filesystem_addr)
         -- Register the mapping
-        _G.mounted_filesystems[mnt_addr] = filesystem_addr
-        
+        _G.mounted_filesystems[mnt_addr] = {
+            address = filesystem_addr,
+            structure = structure
+        }
+
         return mnt_addr
     end
 

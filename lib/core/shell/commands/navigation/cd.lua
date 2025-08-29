@@ -32,16 +32,20 @@ local cd = {}
             return ""
         end
 
-        target_dir = shell:getAbsPath(target_dir)
-        local fs_addr, rel_path = fs.resolveIfMount(target_dir)
-        -- Direct component call to see if the filesystem works
-        if fs.exists(target_dir) and fs.isDirectory(target_dir) then
-            shell.current_dir = target_dir
-            shell:updatePrompt(shell.current_dir)
-            return ""
-        else
-            return "Directory not found: " .. target_dir
-        end
+    target_dir = shell:getAbsPath(target_dir)
+    
+    local fs_addr, rel_path, structure = fs.resolveIfMount(target_dir)
+    
+    local exists = fs.exists(target_dir)
+    local isDir = fs.isDirectory(target_dir)
+    
+    if exists and isDir then
+        shell.current_dir = target_dir
+        shell:updatePrompt(shell.current_dir)
+        return ""
+    else
+        return "Directory not found: " .. target_dir
     end
+end
 
 return cd
