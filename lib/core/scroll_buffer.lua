@@ -1,9 +1,10 @@
 -- /lib/core/scroll_buffer.lua
 -- Contains scroll and print out history
+-- Also contains file editing capabilities towards the bottom
 
 local draw = require("draw")
 local gpu = _G.primary_gpu
-local filesystem = require("filesystem")
+local fs = require("filesystem")
 
 local scrollBuffer = {}
     scrollBuffer.__index = scrollBuffer
@@ -31,7 +32,6 @@ local scrollBuffer = {}
             self[attribute] = nil -- Clear methods to free up memory
         end
         setmetatable(self, nil)
-        collectgarbage()
     end
 
     function scrollBuffer:clear()
@@ -113,8 +113,8 @@ local scrollBuffer = {}
     end
 
     function scrollBuffer:setLogFilePath(file_path)
-        if not filesystem.exists(file_path) then
-            local file, err = filesystem.open(file_path, "w")
+        if not fs.exists(file_path) then
+            local file, err = fs.open(file_path, "w")
             if not file then
                 error("Failed to open log file: " .. err)
             end
@@ -124,7 +124,7 @@ local scrollBuffer = {}
     end
 
     function scrollBuffer:exportHistory(file_path)
-        local file, err = filesystem.open(file_path, "w")
+        local file, err = fs.open(file_path, "w")
         if not file then
             return false, err
         end
@@ -136,7 +136,7 @@ local scrollBuffer = {}
     end
 
     function scrollBuffer:exportLine(file_path, lines)
-        local file, err = filesystem.open(file_path, "a")
+        local file, err = fs.open(file_path, "a")
         if not file then
             return false, err
         end
@@ -149,7 +149,7 @@ local scrollBuffer = {}
 
     function scrollBuffer:clearLogFile()
         if self.log_file_path then
-            local file, err = filesystem.open(self.log_file_path, "w")
+            local file, err = fs.open(self.log_file_path, "w")
             if not file then
                 return false, err
             end
@@ -184,6 +184,11 @@ local scrollBuffer = {}
 
     function scrollBuffer:pushUp()
         self.render_offset = self.render_offset + 1
+        self:updateVisibleBuffer()
+    end
+
+    function scrollBuffer:pushDown()
+        self.render_offset = self.render_offset - 1
         self:updateVisibleBuffer()
     end
 
@@ -234,6 +239,221 @@ local scrollBuffer = {}
         end
         lines_added = lines_added - wrap
         return lines_added
+    end
+
+    --+++++++++++++++++++++++++ File Editing Capabilities +++++++++++++++++++++++++++++++++++++
+
+    function scrollBuffer:fileEditorMode()
+        local height = _G.height
+        self.cursor_x = 1
+        self.cursor_y = 1
+        self.buffer_lines = {}
+        self.visible_lines = {}
+        self.max_lines = math.huge
+        self.buffer_index = 1
+        self.visible_max_lines = height
+    end
+
+    function scrollBuffer:loadFromFile(abs_path)
+        if not fs.exists(abs_path) then
+            return false, "File does not exist"
+        end
+        local file, err = fs.open(abs_path, "r")
+        if not file then
+            return false, "Failed to open file: " .. err
+        end
+        self:clear()
+
+        local content = ""
+        local chunk, err
+        repeat
+            chunk, err = fs.read(file, 4098)
+            if chunk and chunk ~= "" then
+                content = content .. chunk
+            end
+        until not chunk or chunk == "" or err
+        
+        self:addLine(content)
+        fs.close(file)
+        return true
+    end
+
+    function scrollBuffer:saveToFile(abs_path)
+        local content
+        for _, line in ipairs(self.buffer_lines) do
+            content = (content or "") .. line
+        end
+        local file, err = fs.open(abs_path, "w")
+        if not file then
+            return false, "Failed to open file for writing: " .. err
+        end
+        fs.write(file, content)
+        fs.close(file)
+        return true
+    end
+
+    function scrollBuffer:setLine(y_pos, content)
+        if y_pos < 1 or y_pos > #self.buffer_lines then
+            return false, "Line number out of range"
+        end
+        self.buffer_lines[y_pos] = content
+        self:updateVisibleBuffer()
+        return true
+    end
+
+    function scrollBuffer:insertLine(y_pos, content)
+        if y_pos < 1 or y_pos > #self.buffer_lines + 1 then
+            return false, "Line number out of range"
+        end
+        table.insert(self.buffer_lines, y_pos, content)
+        self:updateVisibleBuffer()
+        return true
+    end
+
+    function scrollBuffer:deleteLine(y_pos)
+        if y_pos < 1 or y_pos > #self.buffer_lines then
+            return false, "Line number out of range"
+        end
+        table.remove(self.buffer_lines, y_pos)
+        self:updateVisibleBuffer()
+        return true
+    end
+
+    function scrollBuffer:getCursorPosition()
+        return self.cursor_x, self.cursor_y
+    end
+
+    function scrollBuffer:setCursorPosition(x, y)
+        if x < 1 then
+            x = 1
+        end
+        if y < 1 then
+            y = 1
+        end
+        if y > #self.buffer_lines then
+            y = #self.buffer_lines
+        end
+        local line_length = #self.buffer_lines[y] or 0
+        if x > line_length + 1 then 
+            x = line_length + 1 
+        end
+        self.cursor_x = x
+        self.cursor_y = y
+        if self.cursor_y < self.buffer_index then
+            self.buffer_index = self.cursor_y
+            self:updateVisibleEditor()
+        end
+    end
+
+    function scrollBuffer:moveCursorLeft()
+        if self.cursor_x > 1 then
+            self.cursor_x = self.cursor_x - 1
+        elseif self.cursor_y > 1 then
+            self.cursor_y = self.cursor_y - 1
+            self.cursor_x = #self.buffer_lines[self.cursor_y] + 1
+        end
+        self:setCursorPosition(self.cursor_x, self.cursor_y)
+    end
+
+    function scrollBuffer:moveCursorRight()
+        local current_line = self.buffer_lines[self.cursor_y] or ""
+        
+        if self.cursor_x <= #current_line then
+            self.cursor_x = self.cursor_x + 1
+        elseif self.cursor_y < #self.buffer_lines then
+            self.cursor_y = self.cursor_y + 1
+            self.cursor_x = 1
+        end
+        self:setCursorPosition(self.cursor_x, self.cursor_y)
+    end
+
+    function scrollBuffer:moveCursorDown()
+        local height = _G.height
+        if self.cursor_y < height - 1 then
+            self.cursor_y = self.cursor_y + 1
+        elseif self.buffer_index < #self.buffer_lines then
+            self.buffer_index = self.buffer_index + 1
+            self:updateVisibleEditor()
+        end
+        self:setCursorPosition(self.cursor_x, self.cursor_y)
+    end
+
+    function scrollBuffer:moveCursorUp()
+        if self.cursor_y > 1 then
+            self.cursor_y = self.cursor_y - 1
+        elseif self.buffer_index > 1 then
+            self.buffer_index = self.buffer_index - 1
+            self:updateVisibleEditor()
+        end
+        self:setCursorPosition(self.cursor_x, self.cursor_y)
+    end
+
+        --- Updates the visible buffer based on the current buffer index
+    function scrollBuffer:updateVisibleEditor()
+        gpu.setActiveBuffer(self.vram_buffer)
+        local height = _G.height
+        local width = _G.width
+        self.visible_lines = {}
+        local screen_index = 1
+        local end_index = self.buffer_index + _G.height - 2
+
+        for line = self.buffer_index, end_index do
+            if self.buffer_lines[line] then
+                table.insert(self.visible_lines, self.buffer_lines[line])
+                gpu.fill(1, screen_index, _G.width, 1, " ")
+                draw.termText(self.buffer_lines[line], 1, screen_index)
+                screen_index = screen_index + 1
+            end
+        end
+        gpu.setActiveBuffer(0)
+        gpu.bitblt(0, 1, 1, width, height - 1, self.vram_buffer, 1, 1)
+    end
+
+    function scrollBuffer:insertCharacter(char)
+        local line = self.buffer_lines[self.cursor_y] or ""
+        local before = line:sub(1, self.cursor_x - 1)
+        local after = line:sub(self.cursor_x)
+        self.buffer_lines[self.cursor_y] = before .. char .. after
+        self.cursor_x = self.cursor_x + 1
+        self:updateVisibleEditor()
+    end
+
+    function scrollBuffer:backspace()
+        if self.cursor_x > 1 then
+            local line = self.buffer_lines[self.cursor_y] or ""
+            self.buffer_lines[self.cursor_y] = line:sub(1, self.cursor_x - 2) .. line:sub(self.cursor_x)
+            self.cursor_x = self.cursor_x - 1
+        elseif self.cursor_y > 1 then
+            local current_line = self.buffer_lines[self.cursor_y] or ""
+            local previous_line = self.buffer_lines[self.cursor_y - 1] or ""
+
+            self.buffer_lines[self.cursor_y - 1] = previous_line .. current_line:sub(1, self.cursor_x - 2)
+            self.cursor_x = #previous_line + 1
+            self.cursor_y = self.cursor_y - 1
+        end
+        self:updateVisibleEditor()
+    end
+
+    function scrollBuffer:delete()
+        local line = self.buffer_lines[self.cursor_y] or ""
+        if self.cursor_x <= #line then
+            self.buffer_lines[self.cursor_y] = line:sub(1, self.cursor_x - 1) .. line:sub(self.cursor_x + 1)
+        elseif self.cursor_y < #self.buffer_lines then
+            local next_line = self.buffer_lines[self.cursor_y + 1] or ""
+            self.buffer_lines[self.cursor_y] = line .. next_line
+            table.remove(self.buffer_lines, self.cursor_y + 1)
+        end
+        self:updateVisibleEditor()
+    end
+
+    function scrollBuffer:newLine()
+        local line = self.buffer_lines[self.cursor_y] or ""
+        local before = line:sub(1, self.cursor_x - 1)
+        local after = line:sub(self.cursor_x)
+        self.buffer_lines[self.cursor_y] = before .. "\n" .. after
+        self.cursor_y = self.cursor_y + 1
+        self.cursor_x = 1
+        self:updateVisibleEditor()
     end
 
 return scrollBuffer

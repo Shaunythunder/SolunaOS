@@ -82,6 +82,14 @@ local keyboard = {}
         end
     end
 
+   function keyboard:getShift()
+       if self.left_shift or self.right_shift then
+           return true
+       else
+           return false
+       end
+   end
+
     --- left shift off
     function keyboard:leftShiftUp()
         self.left_shift = false
@@ -100,6 +108,14 @@ local keyboard = {}
     --- right shift on
     function keyboard:rightShiftDown()
         self.right_shift = true
+    end
+
+    function keyboard:getCtrl()
+        if self.left_ctrl or self.right_ctrl then
+            return true
+        else
+            return false
+        end
     end
 
     --- left ctrl off
@@ -122,8 +138,15 @@ local keyboard = {}
         self.right_ctrl = true
     end
 
+    function keyboard:getAlt()
+        if self.left_alt or self.right_alt then
+            return true
+        else
+            return false
+        end
+    end
+
     --- left alt off
-    --- @return nil
     function keyboard:leftAltUp()
         self.left_alt = false
     end
@@ -143,8 +166,20 @@ local keyboard = {}
         self.right_alt = true
     end
 
+    function keyboard:getCapsLock()
+        return self.capslock
+    end
+
     function keyboard:capsLockToggle()
         self.capslock = not self.capslock
+    end
+
+    function keyboard:getShiftCaps()
+        if (self.left_shift or self.right_shift) ~= self.capslock then
+            return true
+        else
+            return false
+        end
     end
 
     --- Converts a letter to the correct case based on shift and caps lock state

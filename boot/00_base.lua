@@ -78,11 +78,13 @@ _G.package = _G.package or {}
 local lib_path = "/lib/?.lua"
 local core_path = "/lib/core/?.lua"
 local shell_path = "/lib/core/shell/?.lua"
+local env_path = "/lib/terminal_apps/?.lua"
 local custom_path = "?.lua"
 
 package.path = lib_path .. ";" ..
                core_path .. ";" ..
                shell_path .. ";" ..
+               env_path .. ";" ..
                custom_path
 
                
