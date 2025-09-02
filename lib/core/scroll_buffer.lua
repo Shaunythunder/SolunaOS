@@ -26,6 +26,7 @@ local scrollBuffer = {}
         return self
     end
 
+    -- Terminates the scroll buffer
     function scrollBuffer:terminate()
         self:clear()
         gpu.freeBuffer(self.vram_buffer)
@@ -35,12 +36,13 @@ local scrollBuffer = {}
         setmetatable(self, nil)
     end
 
+    -- Clears the entire scroll buffer
     function scrollBuffer:clear()
         self.buffer_lines = {}
         self:updateMaxLines()
     end
 
-    --- Sets max visible lines equal to screen height
+    -- Sets max visible lines equal to screen height
     function scrollBuffer:updateMaxLines()
         self.visible_max_lines = _G.height
         self.max_lines = _G.height * 2
@@ -57,6 +59,7 @@ local scrollBuffer = {}
         end
     end
 
+    -- Scrolls the buffer up by one line
     function scrollBuffer:scrollUp()
         if self.buffer_index > 1 then
             self.buffer_index = self.buffer_index - 1
@@ -64,6 +67,7 @@ local scrollBuffer = {}
         end
     end
 
+    -- Scrolls the buffer down by one line
     function scrollBuffer:scrollDown()
         local end_index = #self.buffer_lines - _G.height + 1
         if end_index < 1 then
@@ -75,6 +79,8 @@ local scrollBuffer = {}
         end
     end
 
+    -- Scrolls the buffer to a specific position
+    ---@param y_pos number
     function scrollBuffer:scrollToPosition(y_pos)
         local end_index = #self.buffer_lines - _G.height + 1
         if end_index < 1 then
@@ -89,26 +95,32 @@ local scrollBuffer = {}
         self:updateVisibleBuffer()
     end
 
+    --- Gets the currently visible lines
     function scrollBuffer:getVisibleLines()
         return self.visible_lines
     end
 
+    --- Enables logging to a file
     function scrollBuffer:enableLogging()
         self.logging = true
     end
 
+    -- Disables logging to a file
     function scrollBuffer:disableLogging()
         self.logging = false
     end
 
+    -- Checks if logging is enabled
     function scrollBuffer:isLoggingEnabled()
         return self.logging
     end
 
+    -- Gets the log file path
     function scrollBuffer:getLogFilePath()
         return self.log_file_path
     end
 
+    -- Toggles logging to a file
     function scrollBuffer:toggleLogging()
         self.logging = not self.logging
     end
@@ -183,16 +195,19 @@ local scrollBuffer = {}
         gpu.bitblt(0, 1, 1, width, height - 1, self.vram_buffer, 1, 1)
     end
 
+    -- Scrolls the buffer up by one line
     function scrollBuffer:pushUp()
         self.render_offset = self.render_offset + 1
         self:updateVisibleBuffer()
     end
 
+    -- Scrolls the buffer down by one line
     function scrollBuffer:pushDown()
         self.render_offset = self.render_offset - 1
         self:updateVisibleBuffer()
     end
 
+    -- Resets the scroll position to the top
     function scrollBuffer:pushReset()
         self.render_offset = 0
         self:updateVisibleBuffer()
@@ -259,6 +274,7 @@ local scrollBuffer = {}
 
     --+++++++++++++++++++++++++ File Editing Capabilities +++++++++++++++++++++++++++++++++++++
 
+    -- Configures to file editing preset
     function scrollBuffer:fileEditorMode()
         local height = _G.height
         self.cursor_x = 1
@@ -270,6 +286,10 @@ local scrollBuffer = {}
         self.visible_max_lines = height
     end
 
+    --- Loads content from a file into the buffer
+    --- @param abs_path string
+    --- @return boolean success
+    --- @return string|nil error
     function scrollBuffer:loadFromFile(abs_path)
         if not fs.exists(abs_path) then
             return false, "File does not exist"
@@ -295,6 +315,10 @@ local scrollBuffer = {}
         return true
     end
 
+    --- Saves the current buffer content to a file
+    --- @param abs_path string
+    --- @return boolean success
+    --- @return string|nil error
     function scrollBuffer:saveToFile(abs_path)
         local content
         for i, line in ipairs(self.buffer_lines) do
@@ -313,6 +337,11 @@ local scrollBuffer = {}
         return true
     end
 
+    --- Sets the content of a specific line
+    --- @param y_pos number
+    --- @param content string
+    --- @return boolean success
+    --- @return string|nil error
     function scrollBuffer:setLine(y_pos, content)
         if y_pos < 1 or y_pos > #self.buffer_lines then
             return false, "Line number out of range"
@@ -322,6 +351,11 @@ local scrollBuffer = {}
         return true
     end
 
+    --- Inserts a new line at a specific position
+    --- @param y_pos number
+    --- @param content string
+    --- @return boolean success
+    --- @return string|nil error
     function scrollBuffer:insertLine(y_pos, content)
         if y_pos < 1 or y_pos > #self.buffer_lines + 1 then
             return false, "Line number out of range"
@@ -331,6 +365,10 @@ local scrollBuffer = {}
         return true
     end
 
+    --- Deletes a line at a specific position
+    --- @param y_pos number
+    --- @return boolean success
+    --- @return string|nil error
     function scrollBuffer:deleteLine(y_pos)
         if y_pos < 1 or y_pos > #self.buffer_lines then
             return false, "Line number out of range"
@@ -340,10 +378,16 @@ local scrollBuffer = {}
         return true
     end
 
+    -- Gets the current cursor position
+    --- @return number cursor_x
+    --- @return number cursor_y
     function scrollBuffer:getCursorPosition()
         return self.cursor_x, self.cursor_y
     end
 
+    -- Sets the cursor position
+    --- @param x_pos number
+    --- @param y_pos number
     function scrollBuffer:setCursorPosition(x_pos, y_pos)
         local height = _G.height
         if x_pos < 1 then
@@ -368,6 +412,7 @@ local scrollBuffer = {}
         self:updateVisibleEditor()
     end
 
+    -- Moves the cursor left one space
     function scrollBuffer:moveCursorLeft()
         if self.cursor_x > 1 then
             self.cursor_x = self.cursor_x - 1
@@ -378,6 +423,7 @@ local scrollBuffer = {}
         self:setCursorPosition(self.cursor_x, self.cursor_y)
     end
 
+    -- Moves the cursor right one space
     function scrollBuffer:moveCursorRight()
         local current_line = self.buffer_lines[self.cursor_y] or ""
         
@@ -390,6 +436,7 @@ local scrollBuffer = {}
         self:setCursorPosition(self.cursor_x, self.cursor_y)
     end
 
+    -- Moves the cursor down one space
     function scrollBuffer:moveCursorDown()
         local height = _G.height
         if self.cursor_y < height - 2 then
@@ -400,6 +447,7 @@ local scrollBuffer = {}
         self:setCursorPosition(self.cursor_x, self.cursor_y)
     end
 
+    -- Moves the cursor up one space
     function scrollBuffer:moveCursorUp()
         if self.cursor_y > 1 then
             self.cursor_y = self.cursor_y - 1
@@ -409,6 +457,7 @@ local scrollBuffer = {}
         self:setCursorPosition(self.cursor_x, self.cursor_y)
     end
 
+    -- Updates the visible editor area
     function scrollBuffer:updateVisibleEditor()
         gpu.setActiveBuffer(self.vram_buffer)
         draw.clear()
@@ -429,24 +478,27 @@ local scrollBuffer = {}
         gpu.bitblt(0, 1, 1, width, height - 2, self.vram_buffer, 1, 1)
     end
 
+    --- Updates a single line in the buffer
+    --- @param y_pos number|nil
     function scrollBuffer:updateSingleLine(y_pos)
-        local width = _G.width
         local y_pos = y_pos or self.cursor_y
         local line_to_update = y_pos + self.buffer_index - 1
         local string = self.buffer_lines[line_to_update] or ""
         draw.singleLineText(string, 1, y_pos)
     end
 
-    function scrollBuffer:insertCharacter(char)
+    -- Inserts a character at the current cursor position
+    ---@param character string
+    function scrollBuffer:insertCharacter(character)
         local width = _G.width
         local line_to_change = self.cursor_y + self.buffer_index - 1
         local line = self.buffer_lines[line_to_change] or ""
         local before = line:sub(1, self.cursor_x - 1)
         local after = line:sub(self.cursor_x)
-        local new_line = before .. char .. after
+        local new_line = before .. character .. after
 
         local cursor_increase = 1
-        if char == "    " then
+        if character == "    " then
             cursor_increase = 4
         end
 
@@ -473,6 +525,7 @@ local scrollBuffer = {}
         end
     end
 
+    -- Deletes character before current cursor position
     function scrollBuffer:backspace()
         local line_to_change = self.cursor_y + self.buffer_index - 1
         if self.cursor_x > 1 then
@@ -491,6 +544,7 @@ local scrollBuffer = {}
         self:updateVisibleEditor()
     end
 
+    -- Deletes character at current cursor position
     function scrollBuffer:delete()
         local line_to_change = self.cursor_y + self.buffer_index - 1
         local line = self.buffer_lines[line_to_change] or ""
@@ -504,6 +558,7 @@ local scrollBuffer = {}
         self:updateVisibleEditor()
     end
 
+    -- Inserts a new line at the current cursor position
     function scrollBuffer:newLine()
         local line_to_change = self.cursor_y + self.buffer_index - 1
         local line = self.buffer_lines[line_to_change] or ""
@@ -516,6 +571,9 @@ local scrollBuffer = {}
         self:updateVisibleEditor()
     end
 
+    --- Finds all occurrences of the search term in the buffer
+    --- @param search_term string
+    --- @return table results
     function scrollBuffer:findText(search_term)
         if not search_term or search_term == "" then
             return {}
@@ -537,6 +595,10 @@ local scrollBuffer = {}
         return results
     end
 
+    -- Highlights the specified text in the buffer
+    --- @param search_term string
+    --- @param search_results table
+    --- @param iterator number
     function scrollBuffer:highlightText(search_term, search_results, iterator)
         local BLACK = 0x000000
         local WHITE = 0xFFFFFF
@@ -555,6 +617,9 @@ local scrollBuffer = {}
         end
     end
 
+    --- Scrolls the buffer to the specified text
+    --- @param search_results table
+    --- @param iterator number
     function scrollBuffer:scrollToText(search_results, iterator)
         if iterator > #search_results then
             iterator = #search_results
@@ -572,26 +637,62 @@ local scrollBuffer = {}
         end
     end
 
-    function scrollBuffer:getTotalCharacters()
-        local size = 0
-        for _, line in ipairs(self.buffer_lines) do
-            size = size + #line
+    -- Cuts the current line and returns it
+    --- @return string cut_buffer
+    function scrollBuffer:cutLine()
+        local line_to_cut = self.cursor_y + self.buffer_index - 1
+        local cut_buffer = self.buffer_lines[line_to_cut] or ""
+
+        table.remove(self.buffer_lines, line_to_cut)
+
+        if line_to_cut > #self.buffer_lines and #self.buffer_lines > 0 then 
+            self.cursor_y = self.cursor_y - 1
+            if self.cursor_y < 1 then
+                self.cursor_y = 1
+            end
         end
-        return size
+        self:updateVisibleEditor()
+        return cut_buffer
     end
 
+    -- Inserts a previously cut line back into the buffer at the current cursor position
+    ---@param cut_buffer string
+    function scrollBuffer:uncutLine(cut_buffer)
+        local line_to_uncut = self.cursor_y + self.buffer_index - 1
+        table.insert(self.buffer_lines, line_to_uncut, cut_buffer)
+        self:updateVisibleEditor()
+    end
+
+    -- Get the total number of characters in the buffer
+    --- @return number total_characters
+    function scrollBuffer:getTotalCharacters()
+        local total_characters = 0
+        for _, line in ipairs(self.buffer_lines) do
+            total_characters = total_characters + #line
+        end
+        return total_characters
+    end
+
+    --- Get the total number of lines in the buffer
+    --- @return number total_lines
     function scrollBuffer:getTotalLines()
         return #self.buffer_lines
     end
 
+    -- Get the current line of the cursor
+    ---@return number current_line line
     function scrollBuffer:getCurrentLine()
         return self.cursor_y + self.buffer_index - 1
     end
 
+    -- Get the current column of the cursor
+    ---@return number current_column column
     function scrollBuffer:getCurrentColumn()
         return self.cursor_x
     end
 
+    -- Get the file size of the current buffer
+    --- @return string file size in B, KB, or MB
     function scrollBuffer:getFileSize()
         local size = self:getTotalCharacters()
         if size < 1024 then

@@ -22,6 +22,7 @@ local file_editor = {}
         self.save_error = false
         self.find_buffer = ""
         self.find_iterator = 1
+        self.cut_buffer = ""
         cursor:setPosition(1, 1)
         return self
     end
@@ -111,6 +112,12 @@ local file_editor = {}
                 break
             elseif character == "f" and keyboard:getCtrl() then
                 self:findMode()
+            elseif character == "k" and keyboard:getCtrl() then
+                self.cut_buffer = self.editor_buffer:cutLine()
+            elseif character == "u" and keyboard:getCtrl() then
+                if self.cut_buffer and self.cut_buffer ~= "" then
+                    self.editor_buffer:uncutLine(self.cut_buffer)
+                end
             elseif #character == 1 then
                 self.editor_buffer:insertCharacter(character)
             end
@@ -139,6 +146,19 @@ local file_editor = {}
         draw.termText(string, 1, height)
     end
 
+    function file_editor:clampWhitespace(value, length)
+        length = length or 4
+        local text = tostring(value)
+        if #text < length then
+            if #text == 0 then
+                return string.rep(" ", length)
+            else
+                return text .. string.rep(" ", length - #text)
+            end
+        end
+        return text
+    end
+
     function file_editor:renderCurrentStatus()
         local filename = self.filename
         local total_lines = self.editor_buffer:getTotalLines()
@@ -146,8 +166,10 @@ local file_editor = {}
         local current_line = self.editor_buffer:getCurrentLine()
         local current_column = self.editor_buffer:getCurrentColumn()
         local file_size = self.editor_buffer:getFileSize()
+        current_line = self:clampWhitespace(current_line)
+        current_column = self:clampWhitespace(current_column, 2)
 
-        local status = filename .. " | " .. total_lines .. "L" .. " " .. total_characters .. "C" .. " | Ln " .. current_line .. ", Col " .. current_column .. " | " .. file_size
+        local status = filename .. " | " .. total_lines .. "L" .. " | " .. total_characters .. "C" .. " | Ln " .. current_line .. "| Col " .. current_column .. " | " .. file_size
         self:renderTopLine(status)
         self:renderBottomLine(help_text)
     end
