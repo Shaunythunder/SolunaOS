@@ -28,6 +28,7 @@ local scrollBuffer = {}
 
     function scrollBuffer:terminate()
         self:clear()
+        gpu.freeBuffer(self.vram_buffer)
         for attribute in pairs(self) do
             self[attribute] = nil -- Clear methods to free up memory
         end
@@ -206,10 +207,20 @@ local scrollBuffer = {}
         self:updateVisibleBuffer()
     end
 
+    function scrollBuffer:scrollToTop()
+        self.buffer_index = 1
+        self:updateVisibleEditor()
+    end
+
     -- Adds new line to terminal buffer with option logging feature
     ---@param raw_line string
+    ---@param setting string|nil scroll to "editor" or "terminal". Defaults to "terminal"
     ---@return number y_home_increment
-    function scrollBuffer:addLine(raw_line)
+    function scrollBuffer:addLine(raw_line, setting)
+        local setting = setting or "terminal"
+        if setting ~= "terminal" and setting ~= "editor" then
+            error("Invalid setting for addLine: " .. tostring(setting) .. "must use 'terminal', 'editor' or leave nil.")
+        end
         local lines_added = 1
         local wrap = 0
         local lines = {}
@@ -233,7 +244,12 @@ local scrollBuffer = {}
         end
         self:updateMaxLines()
         self:removeOldLines()
-        self:scrollToBottom()
+
+        if setting == "editor" then
+            self:scrollToTop()
+        elseif setting == "terminal" then
+            self:scrollToBottom()
+        end
         if self.logging and self.log_file_path then
             self:exportLine(self.log_file_path, lines)
         end
@@ -273,15 +289,20 @@ local scrollBuffer = {}
             end
         until not chunk or chunk == "" or err
         
-        self:addLine(content)
+        self:addLine(content, "editor")
+        
         fs.close(file)
         return true
     end
 
     function scrollBuffer:saveToFile(abs_path)
         local content
-        for _, line in ipairs(self.buffer_lines) do
-            content = (content or "") .. line
+        for i, line in ipairs(self.buffer_lines) do
+            if i < #self.buffer_lines then
+                content = (content or "") .. line .. "\n"
+            else
+                content = (content or "") .. line
+            end
         end
         local file, err = fs.open(abs_path, "w")
         if not file then
@@ -323,26 +344,28 @@ local scrollBuffer = {}
         return self.cursor_x, self.cursor_y
     end
 
-    function scrollBuffer:setCursorPosition(x, y)
-        if x < 1 then
-            x = 1
+    function scrollBuffer:setCursorPosition(x_pos, y_pos)
+        local height = _G.height
+        if x_pos < 1 then
+            x_pos = 1
         end
-        if y < 1 then
-            y = 1
+        if y_pos < 1 then
+            y_pos = 1
         end
-        if y > #self.buffer_lines then
-            y = #self.buffer_lines
+        if y_pos > height - 2 then
+            y_pos = height - 2
         end
-        local line_length = #self.buffer_lines[y] or 0
-        if x > line_length + 1 then 
-            x = line_length + 1 
+        if y_pos > #self.buffer_lines then
+            y_pos = #self.buffer_lines
         end
-        self.cursor_x = x
-        self.cursor_y = y
-        if self.cursor_y < self.buffer_index then
-            self.buffer_index = self.cursor_y
-            self:updateVisibleEditor()
+        local line = self.buffer_lines[y_pos] or ""
+        local line_length = #line
+        if x_pos > line_length + 1 then
+            x_pos = line_length + 1
         end
+        self.cursor_x = x_pos
+        self.cursor_y = y_pos
+        self:updateVisibleEditor()
     end
 
     function scrollBuffer:moveCursorLeft()
@@ -369,11 +392,10 @@ local scrollBuffer = {}
 
     function scrollBuffer:moveCursorDown()
         local height = _G.height
-        if self.cursor_y < height - 1 then
+        if self.cursor_y < height - 2 then
             self.cursor_y = self.cursor_y + 1
         elseif self.buffer_index < #self.buffer_lines then
             self.buffer_index = self.buffer_index + 1
-            self:updateVisibleEditor()
         end
         self:setCursorPosition(self.cursor_x, self.cursor_y)
     end
@@ -383,51 +405,86 @@ local scrollBuffer = {}
             self.cursor_y = self.cursor_y - 1
         elseif self.buffer_index > 1 then
             self.buffer_index = self.buffer_index - 1
-            self:updateVisibleEditor()
         end
         self:setCursorPosition(self.cursor_x, self.cursor_y)
     end
 
-        --- Updates the visible buffer based on the current buffer index
     function scrollBuffer:updateVisibleEditor()
         gpu.setActiveBuffer(self.vram_buffer)
+        draw.clear()
         local height = _G.height
         local width = _G.width
         self.visible_lines = {}
         local screen_index = 1
-        local end_index = self.buffer_index + _G.height - 2
+        local end_index = self.buffer_index + _G.height - 3
 
         for line = self.buffer_index, end_index do
             if self.buffer_lines[line] then
                 table.insert(self.visible_lines, self.buffer_lines[line])
-                gpu.fill(1, screen_index, _G.width, 1, " ")
-                draw.termText(self.buffer_lines[line], 1, screen_index)
+                draw.singleLineText(self.buffer_lines[line], 1, screen_index)
                 screen_index = screen_index + 1
             end
         end
         gpu.setActiveBuffer(0)
-        gpu.bitblt(0, 1, 1, width, height - 1, self.vram_buffer, 1, 1)
+        gpu.bitblt(0, 1, 1, width, height - 2, self.vram_buffer, 1, 1)
+    end
+
+    function scrollBuffer:updateSingleLine(y_pos)
+        local width = _G.width
+        local y_pos = y_pos or self.cursor_y
+        local line_to_update = y_pos + self.buffer_index - 1
+        local string = self.buffer_lines[line_to_update] or ""
+        draw.singleLineText(string, 1, y_pos)
     end
 
     function scrollBuffer:insertCharacter(char)
-        local line = self.buffer_lines[self.cursor_y] or ""
+        local width = _G.width
+        local line_to_change = self.cursor_y + self.buffer_index - 1
+        local line = self.buffer_lines[line_to_change] or ""
         local before = line:sub(1, self.cursor_x - 1)
         local after = line:sub(self.cursor_x)
-        self.buffer_lines[self.cursor_y] = before .. char .. after
-        self.cursor_x = self.cursor_x + 1
-        self:updateVisibleEditor()
+        local new_line = before .. char .. after
+
+        local cursor_increase = 1
+        if char == "    " then
+            cursor_increase = 4
+        end
+
+        if #new_line > width then
+            local wrapped_line = new_line:sub(1, width)
+            local overflow = new_line:sub(width + 1)
+            local next_line = self.buffer_lines[line_to_change + 1] or ""
+
+            self.buffer_lines[line_to_change] = wrapped_line
+            self.buffer_lines[line_to_change + 1] = overflow .. next_line
+
+            if self.cursor_x > width then
+                self.cursor_y = self.cursor_y + 1
+                self.cursor_x = self.cursor_x - width + cursor_increase
+            else
+                self.cursor_x = self.cursor_x + cursor_increase
+            end
+
+            self:updateVisibleEditor()
+        else
+            self.buffer_lines[line_to_change] = new_line
+            self.cursor_x = self.cursor_x + cursor_increase
+            self:updateSingleLine()
+        end
     end
 
     function scrollBuffer:backspace()
+        local line_to_change = self.cursor_y + self.buffer_index - 1
         if self.cursor_x > 1 then
-            local line = self.buffer_lines[self.cursor_y] or ""
-            self.buffer_lines[self.cursor_y] = line:sub(1, self.cursor_x - 2) .. line:sub(self.cursor_x)
+            local line = self.buffer_lines[line_to_change] or ""
+            self.buffer_lines[line_to_change] = line:sub(1, self.cursor_x - 2) .. line:sub(self.cursor_x)
             self.cursor_x = self.cursor_x - 1
         elseif self.cursor_y > 1 then
-            local current_line = self.buffer_lines[self.cursor_y] or ""
-            local previous_line = self.buffer_lines[self.cursor_y - 1] or ""
+            local current_line = self.buffer_lines[line_to_change] or ""
+            local previous_line = self.buffer_lines[line_to_change - 1] or ""
 
-            self.buffer_lines[self.cursor_y - 1] = previous_line .. current_line:sub(1, self.cursor_x - 2)
+            self.buffer_lines[line_to_change - 1] = previous_line .. current_line
+            table.remove(self.buffer_lines, line_to_change)
             self.cursor_x = #previous_line + 1
             self.cursor_y = self.cursor_y - 1
         end
@@ -435,25 +492,117 @@ local scrollBuffer = {}
     end
 
     function scrollBuffer:delete()
-        local line = self.buffer_lines[self.cursor_y] or ""
+        local line_to_change = self.cursor_y + self.buffer_index - 1
+        local line = self.buffer_lines[line_to_change] or ""
         if self.cursor_x <= #line then
-            self.buffer_lines[self.cursor_y] = line:sub(1, self.cursor_x - 1) .. line:sub(self.cursor_x + 1)
-        elseif self.cursor_y < #self.buffer_lines then
-            local next_line = self.buffer_lines[self.cursor_y + 1] or ""
-            self.buffer_lines[self.cursor_y] = line .. next_line
-            table.remove(self.buffer_lines, self.cursor_y + 1)
+            self.buffer_lines[line_to_change] = line:sub(1, self.cursor_x - 1) .. line:sub(self.cursor_x + 1)
+        elseif line_to_change < #self.buffer_lines then
+            local next_line = self.buffer_lines[line_to_change + 1] or ""
+            self.buffer_lines[line_to_change] = line .. next_line
+            table.remove(self.buffer_lines, line_to_change + 1)
         end
         self:updateVisibleEditor()
     end
 
     function scrollBuffer:newLine()
-        local line = self.buffer_lines[self.cursor_y] or ""
+        local line_to_change = self.cursor_y + self.buffer_index - 1
+        local line = self.buffer_lines[line_to_change] or ""
         local before = line:sub(1, self.cursor_x - 1)
         local after = line:sub(self.cursor_x)
-        self.buffer_lines[self.cursor_y] = before .. "\n" .. after
+        self.buffer_lines[line_to_change] = before
+        table.insert(self.buffer_lines, line_to_change + 1, after)
         self.cursor_y = self.cursor_y + 1
         self.cursor_x = 1
         self:updateVisibleEditor()
+    end
+
+    function scrollBuffer:findText(search_term)
+        if not search_term or search_term == "" then
+            return {}
+        end
+        local results = {}
+        for y_pos, line in ipairs(self.buffer_lines) do
+            local start_pos = 1
+
+            while true do
+                local found_pos = line:find(search_term, start_pos, true)
+                if found_pos then
+                    table.insert(results, {line = y_pos, column = found_pos})
+                    start_pos = found_pos + #search_term
+                else
+                    break
+                end
+            end
+        end
+        return results
+    end
+
+    function scrollBuffer:highlightText(search_term, search_results, iterator)
+        local BLACK = 0x000000
+        local WHITE = 0xFFFFFF
+        local GREY = 0x808080
+        for i, result in ipairs(search_results) do
+            local screen_line = result.line - self.buffer_index + 1
+            local screen_column = result.column
+
+            if screen_line >= 1 and screen_line <= _G.height - 2 then
+                if i == iterator then
+                    draw.highlightText(search_term, screen_column, screen_line, WHITE, GREY)
+                else
+                    draw.highlightText(search_term, screen_column, screen_line, BLACK, WHITE)
+                end
+            end
+        end
+    end
+
+    function scrollBuffer:scrollToText(search_results, iterator)
+        if iterator > #search_results then
+            iterator = #search_results
+        end
+        if #search_results > 0 then
+            local result = search_results[iterator]
+
+            self.buffer_index = result.line - 8
+            if self.buffer_index < 1 then
+                self.buffer_index = 1
+            end
+            self.cursor_y = result.line - self.buffer_index + 1
+            self.cursor_x = result.column
+            self:updateVisibleEditor()
+        end
+    end
+
+    function scrollBuffer:getTotalCharacters()
+        local size = 0
+        for _, line in ipairs(self.buffer_lines) do
+            size = size + #line
+        end
+        return size
+    end
+
+    function scrollBuffer:getTotalLines()
+        return #self.buffer_lines
+    end
+
+    function scrollBuffer:getCurrentLine()
+        return self.cursor_y + self.buffer_index - 1
+    end
+
+    function scrollBuffer:getCurrentColumn()
+        return self.cursor_x
+    end
+
+    function scrollBuffer:getFileSize()
+        local size = self:getTotalCharacters()
+        if size < 1024 then
+            return size .. " B"
+        elseif size < 1024 * 1024 then
+            size = size / 1024
+            return string.format("%.2f KB", size)
+        else
+            size = size / (1024 * 1024)
+            return string.format("%.2f MB", size)
+        end
     end
 
 return scrollBuffer

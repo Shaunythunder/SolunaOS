@@ -2,6 +2,7 @@
 -- Provides core event handling functionality for SolunaOS
 
 local fs = require("filesystem")
+local cursor = _G.cursor
 
 local event = {}
 event.__index = event
@@ -31,6 +32,9 @@ event.__index = event
     --- @return any function_result
     function event:listen(timeout)
         local event_args = {computer.pullSignal(timeout)}
+        if not event_args[1] then
+            return
+        end
         local event_type = event_args[1]
         return self:trigger(event_type, table.unpack(event_args, 2))
     end
@@ -39,6 +43,7 @@ event.__index = event
     --- @param ... any
     --- @return any function_result passes to event:listen()
     function event:trigger(...)
+        cursor:show()
         local args = {...}
         local event_handler = nil
         for _, handler_entry in pairs(self.event_handlers) do

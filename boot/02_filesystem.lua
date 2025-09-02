@@ -25,4 +25,7 @@ end
 
 local Shell = require("shell")
 local shell = Shell.new()
-shell:run()
+local success, err, code = xpcall(shell.run, debug.traceback, shell)
+    if not success then
+        error("Shell error: " .. tostring(err))
+    end

@@ -1,4 +1,4 @@
---/lib/core/shell/commands/text/edit.lua
+--/lib/core/shell/commands/filesystem/edit.lua
 local file_editor = require("file_editor")
 
 local edit = {}

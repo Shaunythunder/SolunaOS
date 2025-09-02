@@ -56,6 +56,33 @@ local draw = {}
         return color
     end
 
+    function draw.singleLineText(raw_line, x_pos, y_pos, foreground, background)
+        local height = _G.height
+        local width = _G.width
+        local x_home = x_pos or cursor:getX()
+        local home_y = y_pos or cursor:getHomeY()
+        local foreground = foreground or WHITE
+        local background = background or BLACK
+        gpu.setForeground(foreground)
+        gpu.setBackground(background)
+        if home_y > height then
+            return "Y position out of bounds"
+        end
+        gpu.fill(1, home_y, width, 1, " ")
+        gpu.set(x_home, home_y, raw_line:sub(1, width))
+    end
+
+    function draw.highlightText(string, x_pos, y_pos, foreground, background)
+        local height = _G.height
+        local width = _G.width
+        local foreground = foreground or BLACK
+        local background = background or WHITE
+        gpu.setForeground(foreground)
+        gpu.setBackground(background)
+        gpu.fill(x_pos, y_pos, #string, 1, " ")
+        gpu.set(x_pos, y_pos, string)
+    end
+
     -- Renders text in a terminal fashion, line by line
     ---@param raw_line string
     ---@param x_pos number|nil

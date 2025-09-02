@@ -20,6 +20,23 @@ local filesystem = {}
         return dirs
     end
 
+    --- Extracts the file name from an absolute path
+    --- @param abs_path string
+    --- @return string filename
+    function filesystem.getNameFromPath(abs_path)
+        local filename = abs_path:match("([^/]+)$")
+        return filename
+    end
+
+    function filesystem.getFileSize(file_object)
+        local ok, err = filesystem.validateFileObject(file_object)
+        if not ok then
+            return nil, error
+        else
+            return file_object.size
+        end
+    end
+
     --- Retrieves directory contents from a mounted filesystem structure
     --- @param structure table
     --- @param abs_path string
