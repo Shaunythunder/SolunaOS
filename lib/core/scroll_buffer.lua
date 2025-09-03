@@ -409,35 +409,44 @@ local scrollBuffer = {}
         end
         self.cursor_x = x_pos
         self.cursor_y = y_pos
-        self:updateVisibleEditor()
     end
 
     -- Moves the cursor left one space
     function scrollBuffer:moveCursorLeft()
+        local current_y = self.cursor_y + self.buffer_index - 1
+        local current_line = self.buffer_lines[current_y] or ""
+       
         if self.cursor_x > 1 then
             self.cursor_x = self.cursor_x - 1
+            draw.singleLineText(current_line, 1, self.cursor_y)
         elseif self.cursor_y > 1 then
             self.cursor_y = self.cursor_y - 1
             self.cursor_x = #self.buffer_lines[self.cursor_y] + 1
+            self:updateVisibleEditor()
         end
         self:setCursorPosition(self.cursor_x, self.cursor_y)
     end
 
     -- Moves the cursor right one space
     function scrollBuffer:moveCursorRight()
-        local current_line = self.buffer_lines[self.cursor_y] or ""
-        
+        local current_y = self.cursor_y + self.buffer_index - 1
+        local current_line = self.buffer_lines[current_y] or ""
+
         if self.cursor_x <= #current_line then
             self.cursor_x = self.cursor_x + 1
+            draw.singleLineText(current_line, 1, self.cursor_y)
         elseif self.cursor_y < #self.buffer_lines then
             self.cursor_y = self.cursor_y + 1
             self.cursor_x = 1
+            self:updateVisibleEditor()
         end
         self:setCursorPosition(self.cursor_x, self.cursor_y)
     end
 
     -- Moves the cursor down one space
     function scrollBuffer:moveCursorDown()
+        local old_y = self.cursor_y
+        local old_buffer_index = self.buffer_index
         local height = _G.height
         if self.cursor_y < height - 2 then
             self.cursor_y = self.cursor_y + 1
@@ -445,16 +454,32 @@ local scrollBuffer = {}
             self.buffer_index = self.buffer_index + 1
         end
         self:setCursorPosition(self.cursor_x, self.cursor_y)
+        if old_buffer_index ~= self.buffer_index then
+            self:updateVisibleEditor()
+        else
+            local old_line = old_y + self.buffer_index - 1
+            local old_string = self.buffer_lines[old_line] or ""
+            draw.singleLineText(old_string, 1, old_y)
+        end
     end
 
     -- Moves the cursor up one space
     function scrollBuffer:moveCursorUp()
+        local old_y = self.cursor_y
+        local old_buffer_index = self.buffer_index
         if self.cursor_y > 1 then
             self.cursor_y = self.cursor_y - 1
         elseif self.buffer_index > 1 then
             self.buffer_index = self.buffer_index - 1
         end
         self:setCursorPosition(self.cursor_x, self.cursor_y)
+        if old_buffer_index ~= self.buffer_index then
+            self:updateVisibleEditor()
+        else
+            local old_line = old_y + self.buffer_index - 1
+            local old_string = self.buffer_lines[old_line] or ""
+            draw.singleLineText(old_string, 1, old_y)
+        end
     end
 
     -- Updates the visible editor area
@@ -463,13 +488,11 @@ local scrollBuffer = {}
         draw.clear()
         local height = _G.height
         local width = _G.width
-        self.visible_lines = {}
         local screen_index = 1
         local end_index = self.buffer_index + _G.height - 3
 
         for line = self.buffer_index, end_index do
             if self.buffer_lines[line] then
-                table.insert(self.visible_lines, self.buffer_lines[line])
                 draw.singleLineText(self.buffer_lines[line], 1, screen_index)
                 screen_index = screen_index + 1
             end
@@ -532,6 +555,7 @@ local scrollBuffer = {}
             local line = self.buffer_lines[line_to_change] or ""
             self.buffer_lines[line_to_change] = line:sub(1, self.cursor_x - 2) .. line:sub(self.cursor_x)
             self.cursor_x = self.cursor_x - 1
+            self:updateSingleLine(self.cursor_y)
         elseif self.cursor_y > 1 then
             local current_line = self.buffer_lines[line_to_change] or ""
             local previous_line = self.buffer_lines[line_to_change - 1] or ""
@@ -540,8 +564,8 @@ local scrollBuffer = {}
             table.remove(self.buffer_lines, line_to_change)
             self.cursor_x = #previous_line + 1
             self.cursor_y = self.cursor_y - 1
+            self:updateVisibleEditor()
         end
-        self:updateVisibleEditor()
     end
 
     -- Deletes character at current cursor position
@@ -550,12 +574,13 @@ local scrollBuffer = {}
         local line = self.buffer_lines[line_to_change] or ""
         if self.cursor_x <= #line then
             self.buffer_lines[line_to_change] = line:sub(1, self.cursor_x - 1) .. line:sub(self.cursor_x + 1)
+            self:updateSingleLine(self.cursor_y)
         elseif line_to_change < #self.buffer_lines then
             local next_line = self.buffer_lines[line_to_change + 1] or ""
             self.buffer_lines[line_to_change] = line .. next_line
             table.remove(self.buffer_lines, line_to_change + 1)
+            self:updateVisibleEditor()
         end
-        self:updateVisibleEditor()
     end
 
     -- Inserts a new line at the current cursor position

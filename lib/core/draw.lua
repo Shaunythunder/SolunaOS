@@ -56,6 +56,20 @@ local draw = {}
         return color
     end
 
+    function draw.singleCharacter(character, x_pos, y_pos, foreground, background)
+        local height = _G.height
+        local x_home = x_pos or cursor:getX()
+        local home_y = y_pos or cursor:getHomeY()
+        local foreground = foreground or WHITE
+        local background = background or BLACK
+        gpu.setForeground(foreground)
+        gpu.setBackground(background)
+        if home_y > height then
+            return "Y position out of bounds"
+        end
+        gpu.set(x_home, home_y, character)
+    end
+
     function draw.singleLineText(raw_line, x_pos, y_pos, foreground, background)
         local height = _G.height
         local width = _G.width
