@@ -15,6 +15,8 @@ local shell = {}
         self.command_history = {}
         self:loadHistory()
         self.command_history_index = #self.command_history + 1
+        self.aliases = {}
+        self:loadAliases()
         return self
     end
 
@@ -186,7 +188,7 @@ local shell = {}
 
     -- Splits inputs into tokens for further processing and routing
     ---@param input string
-    ---@return table tokens
+    ---@return table tokens runs again if alias found
     function shell:tokenizeInput(input)
         local tokens = {}
         local current = ""
@@ -226,6 +228,18 @@ local shell = {}
         if current ~= "" then
             table.insert(tokens, current)
         end
+        
+        if tokens[1] then
+            local alias_command = self:resolveAlias(tokens[1])
+            if alias_command ~= tokens[1] then
+                local actual_command = alias_command
+                for j = 2, #tokens do
+                    actual_command = actual_command .. " " .. tokens[j]
+                end
+                return self:tokenizeInput(actual_command)
+            end
+        end
+
         return tokens
     end
 
@@ -567,6 +581,66 @@ local shell = {}
         self:output("Starting background job: " .. command_structure.command)
     end
 
+    -- Resolves a command alias to its actual command
+    function shell:resolveAlias(name)
+        if not self.aliases[name] then
+            return name
+        else
+            return self.aliases[name]
+        end
+    end
+
+    -- Resets all command aliases by clearing /etc/alias.lua and shell memory
+    function shell:resetAliases()
+        self.aliases = {}
+        local file = fs.open("/etc/alias.lua", "w")
+        if file then
+            fs.write(file, "-- /etc/alias.lua\n\nlocal aliases = {}\n\nreturn aliases")
+            fs.close(file)
+        end
+    end
+
+    -- Removes a command alias from /etc/alias.lua and shell memory
+    ---@param name string
+    function shell:removeAlias(name)
+        self.aliases[name] = nil
+        local file = fs.open("/etc/alias.lua", "w")
+        if file then
+            fs.write(file, "-- /etc/alias.lua\n\nlocal aliases = {}\n\n")
+            for alias_name, alias_command in pairs(self.aliases) do
+                fs.write(file, string.format("aliases['%s'] = '%s'\n", alias_name, alias_command))
+            end
+            fs.write(file, "\nreturn aliases")
+            fs.close(file)
+        end
+    end
+
+    -- Saves a command alias to /etc/alias.lua and shell memory
+    ---@param name string
+    ---@param command string
+    function shell:saveAlias(name, command)
+        self.aliases[name] = command
+        local file = fs.open("/etc/alias.lua", "w")
+        if file then
+            fs.write(file, "-- /etc/alias.lua\n\nlocal aliases = {}\n\n")
+            for alias_name, alias_command in pairs(self.aliases) do
+                fs.write(file, string.format("aliases['%s'] = '%s'\n", alias_name, alias_command))
+            end
+            fs.write(file, "\nreturn aliases")
+            fs.close(file)
+        end
+    end
+
+    -- Loads aliases from /etc/alias.lua into shell memory
+    function shell:loadAliases()
+        local ok, aliases = pcall(require, "/etc/alias")
+        if ok and type(aliases) == "table" then
+            self.aliases = aliases
+        else
+            self.aliases = {}
+        end
+    end
+
     -- Loads a command module by name and executes it
     ---@param command_name string
     ---@return table|nil command_module
@@ -577,7 +651,6 @@ local shell = {}
         "/lib/core/shell/commands/text",
         "/lib/core/shell/commands/system",
         "/lib/core/shell/commands/environment",
-        "/lib/core/shell/commands/io",
         "/lib/core/shell/commands/network",
         "/lib/core/shell/commands/terminal",
         "/lib/core/shell/commands/sh",

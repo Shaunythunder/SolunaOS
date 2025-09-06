@@ -96,17 +96,20 @@ _G.require = function(mod_name)
     if loaded_modules[mod_name] then
         return loaded_modules[mod_name]
     end
-   for pattern in package.path:gmatch("[^;]+") do
-    local path = pattern:gsub("?", mod_name)
-    local good_path, result = xpcall(_G.dofile, debug.traceback, path)
-    -- Only treat as success if the file pcalled and returned non-nil
-    if good_path then
-        local module_result = result
-        loaded_modules[mod_name] = result
-        return result
+    local traceback
+    for pattern in package.path:gmatch("[^;]+") do
+        local path = pattern:gsub("?", mod_name)
+        local good_path, result = xpcall(_G.dofile, debug.traceback, path)
+        -- Only treat as success if the file pcalled and returned non-nil
+        if good_path then
+            local module_result = result
+            loaded_modules[mod_name] = result
+            return result
+        elseif not good_path and not result:match("Failed to open file:") then
+            traceback = result
+        end
     end
-end
-error("Error loading module " .. mod_name .. ": " .. tostring(result))
+    error("Error loading module " .. mod_name .. ":\n" .. tostring(traceback))
 end
 
 --- Removes module from global cache
