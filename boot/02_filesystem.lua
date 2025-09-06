@@ -2,6 +2,7 @@
 -- Initializes the filesystem and mounts any available disks
 
 local component = _G.component_manager
+local scroll_buffer = _G.scroll_buffer
 local fs = require("filesystem")
 local os = require("os")
 
@@ -23,8 +24,16 @@ if not fs.exists("/home") then
     fs.makeDirectory("/home")
 end
 
+if not fs.exists("/tmp") then
+    fs.makeDirectory("/tmp")
+end
+
+scroll_buffer:enableLogging()
+scroll_buffer:setLogFilePath("/tmp/scroll_buffer.log")
+
 local Shell = require("shell")
 local shell = Shell.new()
+_G.shell = shell
 local success, err, code = xpcall(shell.run, debug.traceback, shell)
     if not success then
         error("Shell error: " .. tostring(err))

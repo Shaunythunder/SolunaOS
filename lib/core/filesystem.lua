@@ -844,8 +844,7 @@ local filesystem = {}
     --- Combines two file paths, ensures only one "/" between the two
     --- @param file_path_1 string
     --- @param file_path_2 string
-    --- @return string|nil new_file_path
-    --- @return string|nil err
+    --- @return string new_file_path
     function filesystem.concat(file_path_1, file_path_2)
        assert(type(file_path_1) == "string", "string expected, got " .. type(file_path_1))
        assert(type(file_path_2) == "string", "string expected, got " .. type(file_path_2))

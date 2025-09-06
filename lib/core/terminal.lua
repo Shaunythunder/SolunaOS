@@ -2,15 +2,9 @@
 -- This module provides functions for input and output operations.
 
 local cursor = _G.cursor
-local fps = _G.fps
 local text_buffer = require("text_buffer")
-local os = require("os")
 local draw = require("draw")
 local event = _G.event
-local keyboard = _G.keyboard
-local gpu = _G.primary_gpu
-local BLACK = 0x000000
-local WHITE = 0xFFFFFF
 
 local terminal = {}
 
@@ -39,6 +33,11 @@ local terminal = {}
     end
 
     function terminal.read(prompt)
+        local shell = _G.shell
+        if shell then
+            shell:resetHistoryIndex()
+        end
+        local scroll_buffer = _G.scroll_buffer
         local prepend_text = prompt or ""
         draw.termText(prepend_text, 1)
         cursor:setPosition(#prepend_text + 1, cursor:getHomeY())
@@ -64,6 +63,10 @@ local terminal = {}
                 cursor:hide()
                 local string = input_buffer:getText()
                 return string
+            elseif character == "pgup" then
+                scroll_buffer:scrollUp()
+            elseif character == "pgdn" then
+                scroll_buffer:scrollDown()
             elseif character == "\t" then
                 input_buffer:insert("    ")
             elseif character == "\b" then
@@ -74,6 +77,28 @@ local terminal = {}
                 input_buffer:moveLeft()
             elseif character == "->" then
                 input_buffer:moveRight()
+            elseif character == "\\^" then
+                if shell then
+                    shell.command_history_index = shell.command_history_index - 1
+                    local history_line = shell:getHistoryLine(shell.command_history_index)
+                    if history_line then
+                        input_buffer:setText(history_line)
+                        input_buffer:setPosition(#history_line + 1)
+                    else
+                        shell.command_history_index = shell.command_history_index + 1
+                    end
+                end
+            elseif character == "\\v" then
+                if shell then
+                    shell.command_history_index = shell.command_history_index + 1
+                    local history_line = shell:getHistoryLine(shell.command_history_index)
+                    if history_line then
+                        input_buffer:setText(history_line)
+                        input_buffer:setPosition(#history_line + 1)
+                    else
+                        shell.command_history_index = shell.command_history_index - 1
+                    end
+                end
             elseif #character == 1 then
                 input_buffer:insert(character)
             end

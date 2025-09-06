@@ -1,6 +1,6 @@
 -- /lib/terminal_apps/file_editor.lua
 local fs = require("filesystem")
-local scroll_buffer = require("scroll_buffer")
+local editor_buffer = require("scroll_buffer")
 local event = _G.event
 local keyboard = _G.keyboard
 local cursor = _G.cursor
@@ -13,7 +13,7 @@ local file_editor = {}
 
     function file_editor.new()
         local self = setmetatable({}, file_editor)
-        self.editor_buffer = scroll_buffer.new()
+        self.editor_buffer = editor_buffer.new()
         self.editor_buffer:fileEditorMode()
         self.filepath = ""
         self.filename = ""
@@ -42,14 +42,14 @@ local file_editor = {}
         self.filename = filename
         draw.clear()
         if fs.exists(filepath) then
-            self.editor_buffer:loadFromFile(filepath)
+            buffer:loadFromFile(filepath)
             self:renderCurrentStatus()
         else
             local file, err = fs.open(filepath, "w")
             fs.close(file)
             self.new_file = true
-            self:renderTopLine("New file: " .. filename)
-            self:renderBottomLine(help_text)
+            buffer:renderTopLine("New file: " .. filename)
+            buffer:renderBottomLine(help_text)
         end
 
         self:edit()
@@ -124,27 +124,20 @@ local file_editor = {}
             local x_pos, y_pos = self.editor_buffer:getCursorPosition()
             cursor:setPosition(x_pos, y_pos)
             if self.file_saved then
-                self:renderTopLine("File saved: " .. self.filename)
-                self:renderBottomLine(help_text)
+                self.editor_buffer:renderTopLine("File saved: " .. self.filename)
+                self.editor_buffer:renderBottomLine(help_text)
                 self.file_saved = false
             elseif not self.save_error then
                 self:renderCurrentStatus()
             else
-                self:renderTopLine("Error saving " .. self.filename)
-                self:renderBottomLine(help_text)
+                self.editor_buffer:renderTopLine("Error saving " .. self.filename)
+                self.editor_buffer:renderBottomLine(help_text)
                 self.save_error = false
             end
         end
     end
     
-    function file_editor:renderTopLine(string)
-        local height = _G.height
-        draw.termText(string, 1, height - 1)
-    end
-    function file_editor:renderBottomLine(string)
-        local height = _G.height
-        draw.termText(string, 1, height)
-    end
+
 
     function file_editor:clampWhitespace(value, length)
         length = length or 4
@@ -170,15 +163,15 @@ local file_editor = {}
         current_column = self:clampWhitespace(current_column, 2)
 
         local status = filename .. " | " .. total_lines .. "L" .. " | " .. total_characters .. "C" .. " | Ln " .. current_line .. "| Col " .. current_column .. " | " .. file_size
-        self:renderTopLine(status)
-        self:renderBottomLine(help_text)
+        self.editor_buffer:renderTopLine(status)
+        self.editor_buffer:renderBottomLine(help_text)
     end
 
     function file_editor:findMode()
         local height = _G.height
         local find_string = "Find text: " .. self.find_buffer
-        self:renderTopLine(find_string)
-        self:renderBottomLine("Find mode: enter search term (Ctrl+C to exit)")
+        self.editor_buffer:renderTopLine(find_string)
+        self.editor_buffer:renderBottomLine("Find mode: enter search term (Ctrl+C to exit)")
         cursor:setPosition(#find_string + 1, height - 1)
         while true do
             local character = self:input()
@@ -205,8 +198,8 @@ local file_editor = {}
                 report_string = " No results"
                 self.editor_buffer:updateVisibleEditor()
             end
-            self:renderTopLine(find_string .. " " .. report_string)
-            self:renderBottomLine("Find mode: enter search term (Ctrl+C to exit)")
+            self.editor_buffer:renderTopLine(find_string .. " " .. report_string)
+            self.editor_buffer:renderBottomLine("Find mode: enter search term (Ctrl+C to exit)")
             cursor:setPosition(#find_string + 1, height - 1)
         end
     end

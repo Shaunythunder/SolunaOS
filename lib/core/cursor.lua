@@ -25,6 +25,7 @@ local cursor = {}
         self.old_char = old_char
         self.old_fg = old_fg
         self.old_bg = old_bg
+        self.visible = true
         return self
     end
 
@@ -121,8 +122,19 @@ local cursor = {}
         end
     end
 
+    function cursor:setVisible()
+        self.visible = true
+    end
+
+    function cursor:setNotVisible()
+        self.visible = false
+    end
+
     -- Show the cursor
     function cursor:show()
+        if not self.visible then
+            return
+        end
         self.old_char, self.old_fg, self.old_bg = gpu.get(self.x_pos, self.y_pos)
         gpu.setForeground(self.old_bg)
         gpu.setBackground(self.old_fg)
@@ -131,6 +143,9 @@ local cursor = {}
 
     -- Hide the cursor
     function cursor:hide()
+        if not self.visible then
+            return
+        end
         gpu.setForeground(self.old_fg)
         gpu.setBackground(self.old_bg)
         gpu.set(self.x_pos, self.y_pos, self.old_char)

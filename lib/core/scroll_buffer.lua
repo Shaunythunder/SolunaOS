@@ -5,6 +5,7 @@
 local draw = require("draw")
 local gpu = _G.primary_gpu
 local fs = require("filesystem")
+local os = require("os")
 
 local scrollBuffer = {}
     scrollBuffer.__index = scrollBuffer
@@ -119,19 +120,14 @@ local scrollBuffer = {}
     function scrollBuffer:getLogFilePath()
         return self.log_file_path
     end
-
-    -- Toggles logging to a file
-    function scrollBuffer:toggleLogging()
-        self.logging = not self.logging
-    end
-
+    
     function scrollBuffer:setLogFilePath(file_path)
         if not fs.exists(file_path) then
             local file, err = fs.open(file_path, "w")
             if not file then
                 error("Failed to open log file: " .. err)
             end
-            file:close()
+            fs.close(file)
         end
         self.log_file_path = file_path
     end
@@ -149,14 +145,16 @@ local scrollBuffer = {}
     end
 
     function scrollBuffer:exportLine(file_path, lines)
+        local os_time_stamp = os.uptime()
         local file, err = fs.open(file_path, "a")
         if not file then
             return false, err
         end
         for _, line in ipairs(lines) do
-            file:write(line .. "\n")
+            local stamped_line = "[" .. os_time_stamp .. "] " .. line
+            fs.write(file, stamped_line .. "\n")
         end
-        file:close()
+        fs.close(file)
         return true
     end
 
@@ -166,7 +164,7 @@ local scrollBuffer = {}
             if not file then
                 return false, err
             end
-            file:close()
+            fs.close(file)
             return true
         else
             return false, "Log file path not set"
@@ -688,6 +686,20 @@ local scrollBuffer = {}
         self:updateVisibleEditor()
     end
 
+    -- Renders a string at the top line of the terminal
+    --- @param string string
+    function scrollBuffer:renderTopLine(string)
+        local height = _G.height
+        draw.termText(string, 1, height - 1)
+    end
+
+    -- Renders a string at the bottom line of the terminal
+    --- @param string string
+    function scrollBuffer:renderBottomLine(string)
+        local height = _G.height
+        draw.termText(string, 1, height)
+    end
+
     -- Get the total number of characters in the buffer
     --- @return number total_characters
     function scrollBuffer:getTotalCharacters()
@@ -731,6 +743,74 @@ local scrollBuffer = {}
         end
     end
 
+--+++++++++++++++++++++++++++ Pager Capabilities +++++++++++++++++++++++++++++++++++++
+    
+    function scrollBuffer:goToStart()
+        self.buffer_index = 1
+        self:updateVisiblePager()
+    end
+
+    function scrollBuffer:goToEnd()
+        self.buffer_index = #self.buffer_lines - _G.height + 1
+        if self.buffer_index < 1 then
+            self.buffer_index = 1
+        end
+        self:updateVisiblePager()
+    end
+
+    function scrollBuffer:lineUp()
+        if self.buffer_index > 1 then
+            self.buffer_index = self.buffer_index - 1
+            self:updateVisiblePager()
+        end
+    end
+
+    function scrollBuffer:lineDown()
+        if self.buffer_index < #self.buffer_lines - _G.height + 1 then
+            self.buffer_index = self.buffer_index + 1
+            self:updateVisiblePager()
+        end
+    end
+    
+    function scrollBuffer:pageUp()
+        local height = _G.height
+        if self.buffer_index > 1 then
+            self.buffer_index = self.buffer_index - height + 2
+            if self.buffer_index < 1 then
+                self.buffer_index = 1
+            end
+            self:updateVisiblePager()
+        end
+    end
+
+    function scrollBuffer:pageDown()
+        local height = _G.height
+        if self.buffer_index < #self.buffer_lines - height + 1 then
+            self.buffer_index = self.buffer_index + height - 2
+            if self.buffer_index > #self.buffer_lines - height + 1 then
+                self.buffer_index = #self.buffer_lines - height + 1
+            end
+            self:updateVisiblePager()
+        end
+    end
+
+        -- Updates the visible editor area
+    function scrollBuffer:updateVisiblePager()
+        gpu.setActiveBuffer(self.vram_buffer)
+        draw.clear()
+        local height = _G.height
+        local width = _G.width
+        local screen_index = 1
+        local end_index = self.buffer_index + _G.height - 2
+
+        for line = self.buffer_index, end_index do
+            if self.buffer_lines[line] then
+                draw.singleLineText(self.buffer_lines[line], 1, screen_index)
+                screen_index = screen_index + 1
+            end
+        end
+        gpu.setActiveBuffer(0)
+        gpu.bitblt(0, 1, 1, width, height - 1, self.vram_buffer, 1, 1)
+    end
+
 return scrollBuffer
-
-

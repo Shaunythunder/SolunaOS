@@ -12,6 +12,8 @@ local shell = {}
         self.access_level = "#"
         self.prompt = self.current_dir .. " # "
         self.commands = {}
+        self.command_history = {}
+        self.command_history_index = #self.command_history + 1
         return self
     end
 
@@ -22,10 +24,12 @@ local shell = {}
             self[attribute] = nil
         end
         setmetatable(self, nil)
+        _G.shell = nil
     end
 
     -- Main shell loop
     function shell:run()
+        self:loadHistory()
         self:output("Welcome to SolunaOS Shell")
         self:output("Currently in alpha.")
         while true do
@@ -46,14 +50,67 @@ local shell = {}
         shell:terminate()
     end
 
+    function shell:resetHistoryIndex()
+        self.command_history_index = #self.command_history + 1
+    end
+
+    function shell:loadHistory()
+        local command_history_path = "/etc/command_history.log"
+        local file = fs.exists(command_history_path)
+        local history = {}
+        if file then
+            local content = fs.read(file)
+            fs.close(file)
+            if content then
+                for line in content:gmatch("([^\n]*)\n?") do
+                    if line ~= "" then
+                        table.insert(history, line)
+                    end
+                end
+            end
+        end
+        self.command_history = history
+    end
+
+    function shell:getHistoryLine(index)
+        if self.command_history and index >= 1 and index <= #self.command_history then
+            return self.command_history[index]
+        end
+        return nil
+    end
+
+    function shell:recordHistory(input)
+        local command_history_path = "/etc/command_history.log"
+        local history = self.command_history or {}
+        
+        table.insert(history, input)
+
+        while history and #history > 100 do
+            table.remove(history, 1)
+        end
+
+        self.command_history = history
+        local file = fs.open(command_history_path, "w")
+        if file then
+            for _, line in ipairs(history) do
+                fs.write(file, line .. "\n")
+            end
+            fs.close(file)
+        end
+    end
+
     -- Get user input with prompt
-    --- @param prompt string
+    --- @param prompt string|nil
     --- @return string prompt
     function shell:input(prompt)
         prompt = self.prompt
-        return terminal.read(prompt)
+        local input = terminal.read(prompt)
+        if input and input ~= "" then
+            self:recordHistory(input)
+        end
+        return input
     end
-
+    
     -- Output text to the terminal
     ---@param text string
     function shell:output(text)
@@ -503,12 +560,13 @@ local shell = {}
     function shell:loadCommand(command_name)
         local command_paths = {
         "/lib/core/shell/commands/filesystem",
-        "/lib/core/shell/commands/navigation", 
+        "/lib/core/shell/commands/navigation",
         "/lib/core/shell/commands/text",
         "/lib/core/shell/commands/system",
         "/lib/core/shell/commands/environment",
         "/lib/core/shell/commands/io",
         "/lib/core/shell/commands/network",
+        "/lib/core/shell/commands/terminal",
         "/lib/core/shell/commands/sh",
         "/lib/core/shell/commands/misc",
        }
