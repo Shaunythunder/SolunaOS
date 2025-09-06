@@ -26,6 +26,9 @@ end
 
 if not fs.exists("/tmp") then
     fs.makeDirectory("/tmp")
+else
+    fs.removeRecursive("/tmp")
+    fs.makeDirectory("/tmp")
 end
 
 scroll_buffer:enableLogging()
@@ -34,6 +37,7 @@ scroll_buffer:setLogFilePath("/tmp/scroll_buffer.log")
 local Shell = require("shell")
 local shell = Shell.new()
 _G.shell = shell
+
 local success, err, code = xpcall(shell.run, debug.traceback, shell)
     if not success then
         error("Shell error: " .. tostring(err))

@@ -83,7 +83,6 @@ local terminal = {}
                     local history_line = shell:getHistoryLine(shell.command_history_index)
                     if history_line then
                         input_buffer:setText(history_line)
-                        input_buffer:setPosition(#history_line + 1)
                     else
                         shell.command_history_index = shell.command_history_index + 1
                     end
@@ -94,7 +93,6 @@ local terminal = {}
                     local history_line = shell:getHistoryLine(shell.command_history_index)
                     if history_line then
                         input_buffer:setText(history_line)
-                        input_buffer:setPosition(#history_line + 1)
                     else
                         shell.command_history_index = shell.command_history_index - 1
                     end

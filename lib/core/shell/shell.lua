@@ -13,6 +13,7 @@ local shell = {}
         self.prompt = self.current_dir .. " # "
         self.commands = {}
         self.command_history = {}
+        self:loadHistory()
         self.command_history_index = #self.command_history + 1
         return self
     end
@@ -29,7 +30,7 @@ local shell = {}
 
     -- Main shell loop
     function shell:run()
-        self:loadHistory()
+        self:clear()
         self:output("Welcome to SolunaOS Shell")
         self:output("Currently in alpha.")
         while true do
@@ -50,15 +51,22 @@ local shell = {}
         shell:terminate()
     end
 
+    function shell:clear()
+        self.scroll_buffer:clear()
+    end
+
+    -- Resets the command history index to the latest entry
     function shell:resetHistoryIndex()
         self.command_history_index = #self.command_history + 1
     end
 
+    -- Loads command history from log file into shell memory
     function shell:loadHistory()
-        local command_history_path = "/etc/command_history.log"
-        local file = fs.exists(command_history_path)
+        local command_history_path = "/etc/logs/command_history.log"
+        local file_exists = fs.exists(command_history_path)
         local history = {}
-        if file then
+        if file_exists then
+            local file = fs.open(command_history_path, "r")
             local content = fs.read(file)
             fs.close(file)
             if content then
@@ -72,6 +80,9 @@ local shell = {}
         self.command_history = history
     end
 
+    -- Retrieves a specific line from command history by index
+    ---@param index number
+    ---@return string|nil history_line
     function shell:getHistoryLine(index)
         if self.command_history and index >= 1 and index <= #self.command_history then
             return self.command_history[index]
@@ -79,8 +90,10 @@ local shell = {}
         return nil
     end
 
+    -- Records a command into history and saves to log file
+    ---@param input string
     function shell:recordHistory(input)
-        local command_history_path = "/etc/command_history.log"
+        local command_history_path = "/etc/logs/command_history.log"
         local history = self.command_history or {}
         
         table.insert(history, input)
