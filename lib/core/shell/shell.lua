@@ -97,7 +97,7 @@ local shell = {}
     function shell:recordHistory(input)
         local command_history_path = "/etc/logs/command_history.log"
         local history = self.command_history or {}
-        
+
         table.insert(history, input)
 
         while history and #history > 100 do
@@ -125,7 +125,7 @@ local shell = {}
         end
         return input
     end
-    
+
     -- Output text to the terminal
     ---@param text string
     function shell:output(text)
@@ -224,11 +224,11 @@ local shell = {}
             end
             i = i + 1
         end
-        
+
         if current ~= "" then
             table.insert(tokens, current)
         end
-        
+
         if tokens[1] then
             local alias_command = self:resolveAlias(tokens[1])
             if alias_command ~= tokens[1] then
@@ -351,7 +351,7 @@ local shell = {}
             if type(files) == "table" then
                 local match_name = pattern:match("/([^/]*)$") or pattern
                 local lua_pattern = "^" .. match_name:gsub("%*", ".*"):gsub("%?", ".") .. "$"
-                
+
                 for _, file in ipairs((files)) do
                     if file:match(lua_pattern) then
                         local full_path = directory == "/" and "/" .. file or directory .. "/" .. file
@@ -370,7 +370,7 @@ local shell = {}
     function shell:parseCommandStructure(tokens, original_input)
         local commands = {}
         local current_command = self:createEmptyCommand()
-        
+
         local i = 1
         while i <= #tokens do
             local token = tokens[i]
@@ -424,7 +424,7 @@ local shell = {}
             end
             i = i + 1
         end
-        
+
         if current_command.command then
             table.insert(commands, current_command)
         end
@@ -551,7 +551,7 @@ local shell = {}
             end
         end
 
-        return output, 0
+        return output
     end
 
     -- Executes a series of commands connected by pipes
@@ -574,7 +574,7 @@ local shell = {}
         return data
     end
 
-    
+
     -- Starts a command in the background without blocking the shell inputs
     -- NOT IMPLEMENTED.
     function shell:startBackgroundJob(command_structure)
@@ -656,7 +656,7 @@ local shell = {}
         "/lib/core/shell/commands/sh",
         "/lib/core/shell/commands/misc",
        }
-        
+
        for _, path in ipairs(command_paths) do
             local full_module_path = path .. "/" .. command_name
             local ok, command_module = pcall(require, full_module_path)
@@ -669,5 +669,5 @@ local shell = {}
         end
         return nil
     end
-       
+
 return shell
