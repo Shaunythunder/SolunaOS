@@ -4,7 +4,8 @@
 do
     local hardware_registers, loadfile = ...
 
-    _G.OS_VERSION = "SolunaOS v 0.1.6"
+    _G.OS_NAME= "SolunaOS"
+    _G.OS_VERSION = "0.14.21"
     _G.hardware_registers = hardware_registers
     _G.BOOT_ADDRESS = computer.getBootAddress()
     _G.OS_FILESYSTEM = component.proxy(_G.BOOT_ADDRESS)

@@ -2,10 +2,13 @@
 
 local fs = require("filesystem")
 local tail = {}
+tail.description = "Displays the last lines of a file"
+tail.usage = "Usage: tail <file> [lines]"
+tail.flags = {}
 
     function tail.execute(args, input_data, shell)
         if #args == 0 then
-            return "Usage: tail <file>"
+            return tail.usage
         end
 
         local filename = args[1]

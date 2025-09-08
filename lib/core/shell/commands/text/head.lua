@@ -1,10 +1,13 @@
 -- lib/core/shell/commands/text/head.lua
 local fs = require("filesystem")
 local head = {}
+head.description = "Displays the first lines of a file"
+head.usage = "Usage: head <file> [lines]"
+head.flags = {}
 
     function head.execute(args, input_data, shell)
         if #args == 0 then
-            return "Usage: head <file>"
+            return head.usage
         end
 
         local filename = args[1]

@@ -1,6 +1,9 @@
 -- lib/core/shell/commands/filesystem/ls.lua
 local fs = require("filesystem")
 local ls = {}
+ls.description = "Lists files in a directory"
+ls.usage = "Usage: ls [directory]"
+ls.flags = {}
 
     -- This command lists the files in a directory.
     function ls.execute(args, input_data, shell)
@@ -8,7 +11,7 @@ local ls = {}
         if #args == 0 then
             directory = shell.current_dir
         elseif #args > 1 then
-            return "Usage: ls or ls [directory]"
+            return ls.usage
         else
             directory = shell:getAbsPath(args[1])
         end

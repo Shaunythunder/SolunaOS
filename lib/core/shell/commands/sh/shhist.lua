@@ -4,9 +4,13 @@ local pager = require("pager")
 local scroll_buffer = _G.scroll_buffer
 
 local shhist = {}
+shhist.description = "Displays the shell command history"
+shhist.usage = "Usage: shhist"
+shhist.flags = {}
+
     function shhist.execute(args, input_data, shell)
         if #args ~= 0 then
-            return "Usage: shhist"
+            return shhist.usage
         end
 
         local target_file = scroll_buffer.log_file_path

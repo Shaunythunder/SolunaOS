@@ -2,11 +2,14 @@
 
 local fs = require("filesystem")
 local mv = {}
+mv.description = "Moves a file or directory"
+mv.usage = "Usage: mv <source> <destination>"
+mv.flags = {}
 
     -- Moves a file or directory
     function mv.execute(args, input_data, shell)
         if #args < 2 then
-            return "Usage: mv <source> <destination>"
+            return mv.usage
         end
 
         local source = shell:getAbsPath(args[1])

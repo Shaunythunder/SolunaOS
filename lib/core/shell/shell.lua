@@ -9,6 +9,7 @@ local shell = {}
         local self = setmetatable({}, shell)
         self.scroll_buffer = _G.scroll_buffer
         self.current_dir = "/home"
+        self.saved_dir = {}
         self.access_level = "#"
         self.prompt = self.current_dir .. " # "
         self.commands = {}
@@ -53,6 +54,7 @@ local shell = {}
         shell:terminate()
     end
 
+    -- Clears the terminal scroll buffer
     function shell:clear()
         self.scroll_buffer:clear()
     end
@@ -112,6 +114,23 @@ local shell = {}
             end
             fs.close(file)
         end
+    end
+
+    -- Saves the current directory onto the saved stack
+    function shell:saveDirectory()
+        table.insert(self.saved_dir, self.current_dir)
+    end
+
+    -- Pops the last saved directory from the stack and sets as current directory
+    ---@return boolean success
+    function shell:popSavedDir()
+        if self.saved_dir and #self.saved_dir > 0 then
+            self.current_dir = self.saved_dir[#self.saved_dir]
+            table.remove(self.saved_dir, #self.saved_dir)
+            self:updatePrompt(self.current_dir)
+            return true
+        end
+        return false
     end
 
     -- Get user input with prompt
@@ -652,7 +671,6 @@ local shell = {}
         "/lib/core/shell/commands/system",
         "/lib/core/shell/commands/environment",
         "/lib/core/shell/commands/network",
-        "/lib/core/shell/commands/terminal",
         "/lib/core/shell/commands/sh",
         "/lib/core/shell/commands/misc",
        }

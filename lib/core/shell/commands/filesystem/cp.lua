@@ -2,11 +2,14 @@
 
 local fs = require("filesystem")
 local cp = {}
+cp.description = "Copy a file or directory"
+cp.usage = "Usage: cp <source> <destination>"
+cp.flags = {}
 
     -- Copies a file or directory
     function cp.execute(args, input_data, shell)
         if #args < 2 then
-            return "Usage: cp <source> <destination>"
+            return cp.usage
         end
 
         local source = shell:getAbsPath(args[1])

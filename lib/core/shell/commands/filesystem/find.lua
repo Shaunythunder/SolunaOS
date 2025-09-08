@@ -3,10 +3,13 @@
 local fs = require("filesystem")
 
 local find = {}
+find.description = "Find files by name or pattern. Accepts wildcards * and ?"
+find.usage = "Usage: find <filename or pattern>"
+find.flags = {}
 
     function find.execute(args, input_data, shell)
         if #args ~= 1 then
-            return "Usage: find <filename or pattern>"
+            return find.usage
         end
 
         local wildcard_target = args[1]

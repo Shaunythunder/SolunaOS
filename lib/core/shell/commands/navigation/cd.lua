@@ -1,10 +1,18 @@
 -- lib/core/shell/commands/navigation/cd.lua
+
 local fs = require("filesystem")
-local shell = require("shell")
+
 local cd = {}
+cd.description = "Changes the current directory"
+cd.usage = "Usage: cd [directory]"
+cd.flags = {}
 
     -- This command changes the current directory of the shell.
     function cd.execute(args, input_data, shell)
+        if #args > 1 then
+            return cd.usage
+        end
+        
         local target_dir
         if #args == 0 then
             target_dir = "/home"
@@ -32,20 +40,20 @@ local cd = {}
             return ""
         end
 
-    target_dir = shell:getAbsPath(target_dir)
-    
-    local fs_addr, rel_path, structure = fs.resolveIfMount(target_dir)
-    
-    local exists = fs.exists(target_dir)
-    local isDir = fs.isDirectory(target_dir)
-    
-    if exists and isDir then
-        shell.current_dir = target_dir
-        shell:updatePrompt(shell.current_dir)
-        return ""
-    else
-        return "Directory not found: " .. target_dir
+        target_dir = shell:getAbsPath(target_dir)
+        
+        local fs_addr, rel_path, structure = fs.resolveIfMount(target_dir)
+        
+        local exists = fs.exists(target_dir)
+        local isDir = fs.isDirectory(target_dir)
+        
+        if exists and isDir then
+            shell.current_dir = target_dir
+            shell:updatePrompt(shell.current_dir)
+            return ""
+        else
+            return "Directory not found: " .. target_dir
+        end
     end
-end
 
 return cd

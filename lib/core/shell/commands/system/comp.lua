@@ -3,11 +3,14 @@
 
 local component_manager = _G.component_manager
 local comp = {}
+comp.description = "Lists all registered hardware components"
+comp.usage = "Usage: comp"
+comp.flags = {}
 
     --- Lists all registered hardware components.
     function comp.execute(args, input_data, shell)
         if #args > 0 then
-            return "Usage: comp"
+            return comp.usage
         end
         
         if component_manager then

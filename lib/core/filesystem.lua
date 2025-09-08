@@ -860,4 +860,39 @@ local filesystem = {}
         return new_file_path
     end
 
+    function filesystem.getUsedDiskStorage(address)
+        local proxy = component.proxy(address)
+        if not proxy then
+            return nil, "Invalid filesystem address"
+        end
+        local used_space = proxy.spaceUsed()
+        local total_space = proxy.spaceTotal()
+        if not used_space or not total_space then
+            return nil, "Failed to retrieve disk space information"
+        end
+        return used_space, total_space
+    end
+
+
+    function filesystem.getFreeDiskStorage(address)
+        local used_space, total_space = filesystem.getUsedDiskStorage(address)
+        if not used_space or not total_space then
+            return nil, "Failed to retrieve disk space information"
+        end
+        local free_space = total_space - used_space
+        return free_space, total_space
+    end
+
+    function filesystem.normalizeBytes(size)
+        if size < 1024 then
+            return size .. " B"
+        elseif size < 1024 * 1024 then
+            size = size / 1024
+            return string.format("%.2f KB", size)
+        else
+            size = size / (1024 * 1024)
+            return string.format("%.2f MB", size)
+        end
+    end
+
 return filesystem

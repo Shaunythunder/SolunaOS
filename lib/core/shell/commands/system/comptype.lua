@@ -3,11 +3,14 @@
 
 local component_manager = _G.component_manager
 local comptype = {}
+comptype.description = "Lists all registered hardware components of specified type"
+comptype.usage = "Usage: comptype <component_type>"
+comptype.flags = {}
 
     --- Lists all registered hardware components of specified type.
     function comptype.execute(args, input_data, shell)
         if #args ~= 1 then
-            return "Usage: comptype <component_type>"
+            return comptype.usage
         end
 
         local component_type = args[1]

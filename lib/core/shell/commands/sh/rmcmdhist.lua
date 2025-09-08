@@ -3,11 +3,14 @@
 local fs = require("filesystem")
 
 local rmcmdhist = {}
+rmcmdhist.description = "Removes the command history"
+rmcmdhist.usage = "Usage: rmcmdhist"
+rmcmdhist.flags = {}
 
     -- Removes the shell command history log file
     function rmcmdhist.execute(args, input_data, shell)
         if #args ~= 0 then
-            return "Usage: rmcmdhist"
+            return rmcmdhist.usage
         end
 
         local command_history_path = "/etc/logs/command_history.log"

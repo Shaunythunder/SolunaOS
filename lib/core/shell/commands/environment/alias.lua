@@ -1,6 +1,9 @@
 -- /lib/core/shell/commands/environment/alias.lua
 
 local alias = {}
+alias.description = "Set or view command aliases that act as shortcuts for longer commands. For example 'root' -> 'cd /'"
+alias.usage = "Usage: alias [name] ['command']"
+alias.flags = {}
 
     -- Sets a command alias
     function alias.execute(args, input_data, shell)
@@ -26,7 +29,7 @@ local alias = {}
             shell:saveAlias(name, command)
             return "Alias set: " .. name .. " = '" .. command .. "'"
         else
-            return "Usage: alias [name] ['command']"
+            return alias.usage
         end
     end
 

@@ -2,11 +2,14 @@
 local os = require("os")
 
 local reboot = {}
+reboot.description = "Reboots the system"
+reboot.usage = "Usage: reboot"
+reboot.flags = {}
 
     -- Reboots the system
     function reboot.execute(args, input_data, shell)
         if #args > 0 then
-            return "Usage: reboot"
+            return reboot.usage
         end
 
         os.reboot()

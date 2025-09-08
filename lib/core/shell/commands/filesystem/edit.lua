@@ -2,10 +2,13 @@
 local file_editor = require("file_editor")
 
 local edit = {}
+edit.description = "Opens a file in the text editor"
+edit.usage = "Usage: edit <filename>"
+edit.flags = {}
 
     function edit.execute(args, input_data, shell)
         if #args == 0 or #args > 1 then
-            return "Usage: edit <filename>"
+            return edit.usage
         end
 
         local target_file = args[1]

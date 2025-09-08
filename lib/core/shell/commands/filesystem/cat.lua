@@ -1,11 +1,14 @@
 -- lib/core/shell/commands/filesystem/cat.lua
 local fs = require("filesystem")
 local cat = {}
+cat.description = "Concatenate and display file content"
+cat.usage = "Usage: cat <file>"
+cat.flags = {}
 
     -- Does not display correctly. issue at display layer
     function cat.execute(args, input_data, shell)
         if #args == 0 then
-            return "Usage: cat <file>"
+            return cat.usage
         end
 
         local abs_path = shell:getAbsPath(args[1])

@@ -43,6 +43,10 @@ local os = {}
         return computer.totalMemory()
     end
 
+    function os.usedMemory()
+        return computer.totalMemory() - computer.freeMemory()
+    end
+
     function os.queueEvent(event, ...)
         return computer.pushSignal(event, ...)
     end

@@ -2,11 +2,14 @@
 local fs = require("filesystem")
 
 local mkdir = {}
+mkdir.description = "Creates a new directory"
+mkdir.usage = "Usage: mkdir <directory>"
+mkdir.flags = {}
 
     -- Creates a directory with the specified name
     function mkdir.execute(args, input_data, shell)
         if #args == 0 then
-            return "Usage: mkdir <directory>"
+            return mkdir.usage
         end
 
         local dirname = shell:getAbsPath(args[1])

@@ -101,7 +101,7 @@ _G.require = function(mod_name)
         local path = pattern:gsub("?", mod_name)
         local good_path, result = xpcall(_G.dofile, debug.traceback, path)
         -- Only treat as success if the file pcalled and returned non-nil
-        if good_path then
+        if good_path and result ~= nil then
             local module_result = result
             loaded_modules[mod_name] = result
             return result

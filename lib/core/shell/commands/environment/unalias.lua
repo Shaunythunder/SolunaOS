@@ -1,11 +1,14 @@
 -- /lib/core/shell/commands/environment/unalias.lua
 
 local unalias = {}
+unalias.description = "Unset a command alias"
+unalias.usage = "Usage: unalias [name]"
+unalias.flags = {}
 
     -- Unsets a command alias
     function unalias.execute(args, input_data, shell)
         if #args == 0 or #args > 1 then
-            return "Usage: unalias [name]"
+            return unalias.usage
         end
 
         local name = args[1]
