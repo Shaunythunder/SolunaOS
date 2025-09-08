@@ -1,4 +1,5 @@
 -- lib/core/shell/commands/filesystem/rm.lua
+
 local fs = require("filesystem")
 
 local rm = {}

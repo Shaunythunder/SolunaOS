@@ -1,5 +1,7 @@
 -- lib/core/shell/commands/text/head.lua
+
 local fs = require("filesystem")
+
 local head = {}
 head.description = "Displays the first lines of a file"
 head.usage = "Usage: head <file> [lines]"

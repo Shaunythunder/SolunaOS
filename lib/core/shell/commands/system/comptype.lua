@@ -1,7 +1,7 @@
 -- /lib/core/shell/commands/system/comptype.lua
--- Lists all registered hardware components.
 
 local component_manager = _G.component_manager
+
 local comptype = {}
 comptype.description = "Lists all registered hardware components of specified type"
 comptype.usage = "Usage: comptype <component_type>"

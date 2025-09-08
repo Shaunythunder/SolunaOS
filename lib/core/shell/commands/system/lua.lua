@@ -1,6 +1,7 @@
 -- lib/core/shell/commands/system/lua.lua
 
 local fs = require("filesystem")
+
 local lua = {}
 lua.description = "Executes a Lua script"
 lua.usage = "Usage: lua <script.lua>"

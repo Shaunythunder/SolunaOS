@@ -5,7 +5,7 @@
 -- Also manages mounts which use a virtual filesystem abstraction that is synced with the hardware updates.
 
 local OS_FILESYSTEM = _G.OS_FILESYSTEM
-local os = require("os")
+local sys = require("system")
 
 local filesystem = {}
 
@@ -823,7 +823,7 @@ local filesystem = {}
         local temp_file_name
         local temp_file_path
         repeat
-            temp_file_name = "tmp_" .. tostring(os.uptime()) .. "_" .. tostring(math.random(1000, 9999))
+            temp_file_name = "tmp_" .. tostring(sys.uptime()) .. "_" .. tostring(math.random(1000, 9999))
             temp_file_path = "/tmp/" .. temp_file_name
             tries = tries + 1
         until not filesystem.exists("/tmp/" .. temp_file_name) or tries > 100

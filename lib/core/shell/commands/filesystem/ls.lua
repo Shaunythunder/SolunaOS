@@ -1,5 +1,7 @@
 -- lib/core/shell/commands/filesystem/ls.lua
+
 local fs = require("filesystem")
+
 local ls = {}
 ls.description = "Lists files in a directory"
 ls.usage = "Usage: ls [directory]"

@@ -1,5 +1,6 @@
 -- /lib/core/shell/commands/system/shutdown.lua
-local os = require("os")
+
+local sys = require("system")
 
 local shutdown = {}
 shutdown.description = "Shuts down the system"
@@ -12,7 +13,7 @@ shutdown.flags = {}
             return shutdown.usage
         end
 
-        os.shutdown()
+        sys.shutdown()
     end
 
 return shutdown

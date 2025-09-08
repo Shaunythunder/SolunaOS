@@ -1,5 +1,6 @@
 -- /lib/core/shell/commands/system/uptime.lua
-local os = require("os")
+
+local sys = require("system")
 
 local uptime = {}
 uptime.description = "Displays system uptime"
@@ -12,7 +13,7 @@ uptime.flags = {}
             return uptime.usage
         end
 
-        local os_uptime = os.uptime()
+        local os_uptime = sys.uptime()
         print("System Uptime: " .. os_uptime .. " seconds")
         return ""
     end

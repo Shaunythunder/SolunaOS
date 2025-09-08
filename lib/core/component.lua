@@ -97,6 +97,7 @@ component_manager.__index = component_manager
             table.insert(found_components, {
                 component_type = component_type,
                 address = component_data.address,
+                proxy = component_data.proxy
             })
         end
         return found_components

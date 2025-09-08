@@ -1,6 +1,7 @@
 -- lib/core/shell/commands/text/tail.lua
 
 local fs = require("filesystem")
+
 local tail = {}
 tail.description = "Displays the last lines of a file"
 tail.usage = "Usage: tail <file> [lines]"

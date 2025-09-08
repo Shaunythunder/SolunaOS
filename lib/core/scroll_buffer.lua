@@ -5,7 +5,7 @@
 local draw = require("draw")
 local gpu = _G.primary_gpu
 local fs = require("filesystem")
-local os = require("os")
+local sys = require("system")
 
 local scrollBuffer = {}
     scrollBuffer.__index = scrollBuffer
@@ -145,7 +145,7 @@ local scrollBuffer = {}
     end
 
     function scrollBuffer:exportLine(file_path, lines)
-        local os_time_stamp = os.uptime()
+        local os_time_stamp = sys.uptime()
         local file, err = fs.open(file_path, "a")
         if not file then
             return false, err

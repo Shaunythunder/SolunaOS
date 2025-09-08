@@ -1,7 +1,6 @@
 -- lib/core/shell/commands/text/grep.lua
 
 local fs = require("filesystem")
-local terminal = require("terminal")
 
 local grep = {}
 grep.description = "Searches for patterns in text"

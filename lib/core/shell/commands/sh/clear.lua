@@ -1,4 +1,5 @@
 -- /lib/core/shell/commands/terminal/clear.lua
+
 local clear = {}
 clear.description = "Clears the terminal screen"
 clear.usage = "Usage: clear"

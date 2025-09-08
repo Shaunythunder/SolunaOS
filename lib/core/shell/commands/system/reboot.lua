@@ -1,5 +1,6 @@
 -- /lib/core/shell/commands/system/reboot.lua
-local os = require("os")
+
+local sys = require("system")
 
 local reboot = {}
 reboot.description = "Reboots the system"
@@ -12,7 +13,7 @@ reboot.flags = {}
             return reboot.usage
         end
 
-        os.reboot()
+        sys.reboot()
     end
 
 return reboot

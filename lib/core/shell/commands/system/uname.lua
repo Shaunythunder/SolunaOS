@@ -1,7 +1,5 @@
 -- /lib/core/shell/commands/system/uname.lua
 
-local os = require("os")
-
 local uname = {}
 uname.description = "Displays system information"
 uname.usage = "Usage: uname"

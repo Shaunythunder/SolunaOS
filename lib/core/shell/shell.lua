@@ -1,6 +1,8 @@
+-- /lib/core/shell/shell.lua
+
 local fs = require("filesystem")
 local terminal = require("terminal")
-local os = require("os")
+local sys = require("system")
 
 local shell = {}
     shell.__index = shell
@@ -350,10 +352,10 @@ local shell = {}
     function shell:expandVariables(token)
         local result = token
         result = result:gsub("%${([^}]+)}", function(variable)
-            return os.getenv(variable) or ""
+            return sys.getenv(variable) or ""
         end)
         result = result:gsub("%$([%w_]+)", function(variable)
-            return os.getenv(variable) or ""
+            return sys.getenv(variable) or ""
         end)
     return result
     end

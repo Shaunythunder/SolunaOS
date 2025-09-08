@@ -1,5 +1,7 @@
 -- lib/core/shell/commands/filesystem/cat.lua
+
 local fs = require("filesystem")
+
 local cat = {}
 cat.description = "Concatenate and display file content"
 cat.usage = "Usage: cat <file>"

@@ -1,6 +1,7 @@
 -- lib/core/shell/commands/filesystem/cp.lua
 
 local fs = require("filesystem")
+
 local cp = {}
 cp.description = "Copy a file or directory"
 cp.usage = "Usage: cp <source> <destination>"

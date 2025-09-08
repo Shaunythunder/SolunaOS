@@ -12,7 +12,6 @@ _G.component_manager = component_manager
 
 
 _G.fps = 0.05
-local os = require("os")
 
 local Keyboard = require("keyboard")
 local keyboard = Keyboard.new()

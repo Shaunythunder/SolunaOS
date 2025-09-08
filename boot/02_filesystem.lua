@@ -4,7 +4,7 @@
 local component = _G.component_manager
 local scroll_buffer = _G.scroll_buffer
 local fs = require("filesystem")
-local os = require("os")
+local sys = require("system")
 
 _G.mounted_filesystems = {}
 local attached_filesystems = component:findComponentsByType("filesystem")
@@ -16,7 +16,7 @@ for _, filesystem in ipairs(attached_filesystems) do
         if not ok then
             print("Error mounting filesystem at " .. address .. ": " .. err)
         end
-        os.sleep(0)
+        sys.sleep(0)
     end
 end
 
@@ -38,7 +38,3 @@ local Shell = require("shell")
 local shell = Shell.new()
 _G.shell = shell
 
-local success, err, code = xpcall(shell.run, debug.traceback, shell)
-    if not success then
-        error("Shell error: " .. tostring(err))
-    end

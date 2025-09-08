@@ -1,6 +1,7 @@
 -- /lib/core/shell/commands/navigation/pushd.lua
 
 local fs = require("filesystem")
+
 local pushd = {}
 pushd.description = "Saves the current directory and changes to a new one"
 pushd.usage = "Usage: pushd [directory]"

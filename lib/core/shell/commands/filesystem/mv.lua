@@ -1,6 +1,7 @@
 -- lib/core/shell/commands/filesystem/mv.lua
 
 local fs = require("filesystem")
+
 local mv = {}
 mv.description = "Moves a file or directory"
 mv.usage = "Usage: mv <source> <destination>"
