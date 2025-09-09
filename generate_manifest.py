@@ -2,9 +2,10 @@
 
 import os
 excluded_files = {'README.txt', 
-           'generate_manifest.py', 
+           'generate_manifest.py',
+           'dev_commands.txt', 
            'install_manifest.txt',
-           'disk_imager.lua'
+           'disk_imager.lua',
            'disk_updater.lua',
            'license.txt',
            '.gitignore',}

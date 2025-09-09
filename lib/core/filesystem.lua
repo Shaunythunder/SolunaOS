@@ -808,6 +808,13 @@ local filesystem = {}
         return false, "Mount point not found"
     end
 
+    function filesystem.getMountAddress(mnt_addr)
+        if _G.mounted_filesystems[mnt_addr] then
+            return _G.mounted_filesystems[mnt_addr].address
+        end
+        return nil, "Mount point not found"
+    end
+
     --- Generates temp file with random name
     --- @return string|nil temp_file_path
     --- @return string|nil err

@@ -78,7 +78,7 @@ _G.package = _G.package or {}
 local lib_path = "/lib/?.lua"
 local core_path = "/lib/core/?.lua"
 local shell_path = "/lib/core/shell/?.lua"
-local component_path = "/lib/component/?.lua"
+local component_path = "/lib/component_drivers/?.lua"
 local env_path = "/lib/terminal_apps/?.lua"
 local custom_path = "?.lua"
 
