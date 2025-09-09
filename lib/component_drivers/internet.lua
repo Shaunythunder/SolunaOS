@@ -14,49 +14,6 @@ local internet = {}
         return card, nil
     end
 
-    --- Checks if TCP is enabled on the first available internet card.
-    --- @return boolean enabled
-    --- @return string|nil error
-    function internet.isTcpEnabled()
-
-        local card, err = internet.findInternetCard()
-        if not card then
-            return false, err
-        end
-
-        local function isTcpEnabled(internet_card)
-            return internet_card.isTcpEnabled()
-        end
-
-        local ok, result = pcall(isTcpEnabled, card)
-        if ok then
-            return result
-        end
-
-        return false, "Error checking TCP status: " .. tostring(result)
-    end
-
-    --- Checks if HTTP is enabled on the first available internet card.
-    --- @return boolean enabled
-    --- @return string|nil error
-    function internet.isHttpEnabled()
-        local card, err = internet.findInternetCard()
-        if not card then
-            return false, err
-        end
-
-        local function isHttpEnabled(internet_card)
-            return internet_card.isHttpEnabled()
-        end
-
-        local ok, result = pcall(isHttpEnabled, card)
-        if ok then
-            return result
-        else
-            return false, "Error checking HTTP status: " .. tostring(result)
-        end
-    end
-
     --- Connects to a given address and port using the first available internet card.
     --- @param address string
     --- @param port number
@@ -80,6 +37,12 @@ local internet = {}
         end
     end
 
+    --- Makes an HTTP request to the specified URL using the first available internet card.
+    --- @param url string
+    --- @param postData string|nil
+    --- @param headers table|nil
+    --- @return table|nil response
+    --- @return string|nil error
     function internet.request(url, postData, headers)
         local card, err = internet.findInternetCard()
         if not card then

@@ -193,8 +193,6 @@ update.flags = {}
         -- The string is the content of the manifest file.
 
         for chunk in response do
-            print("chunk type:", type(chunk))
-            print("chunk content:", chunk)
             manifest_content = manifest_content .. chunk
         end
 
@@ -290,6 +288,7 @@ update.flags = {}
 
         print("All files updated!")
         sys.sleep(short_delay)
+        sys.reboot()
     end
 
 return update

@@ -8,6 +8,8 @@ local event = _G.event
 
 local terminal = {}
 
+    -- Writes output directly to the terminal at the current cursor position.
+    --- @param ... any
     function terminal.write(...)
         local args = {...}
         local output = table.concat(args, " ")
@@ -16,6 +18,9 @@ local terminal = {}
         cursor:setPosition(1, cursor:getHomeY())
     end
 
+    -- Writes output to the scroll buffer and updates cursor position.
+    --- @param scroll_buffer table
+    --- @param ... any
     function terminal.writeBuffered(scroll_buffer, ...)
         local args = {...}
         local height = _G.height
@@ -32,6 +37,9 @@ local terminal = {}
         cursor:setPosition(1, cursor_y)
     end
 
+    --- Reads input from the user with an optional prompt.
+    --- @param prompt string|nil
+    --- @return string input
     function terminal.read(prompt)
         local shell = _G.shell
         if shell then
@@ -94,7 +102,10 @@ local terminal = {}
                     if history_line then
                         input_buffer:setText(history_line)
                     else
-                        shell.command_history_index = shell.command_history_index - 1
+                        input_buffer:setText("")
+                    end
+                    if shell.command_history_index > #shell.command_history then
+                        shell.command_history_index = #shell.command_history + 1
                     end
                 end
             elseif #character == 1 then

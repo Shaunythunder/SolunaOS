@@ -38,10 +38,12 @@ local shell = {}
         self:clear()
         self:output("Welcome to SolunaOS Shell")
         self:output("Currently in alpha.")
+        
         while true do
+            local prompt = self.prompt
             local line = self:input()
-            if line then
-                local entry = self.prompt .. line
+            if line and #line ~= #prompt then
+                local entry = prompt .. line
                 self:output(entry)
                 local parsed_input = self:parseInput(line)
                 if parsed_input then
@@ -51,6 +53,10 @@ local shell = {}
                     end
                     self:output(result)
                 end
+            elseif line and #line == #prompt then
+                self:output(line)
+            else
+                break
             end
         end
         shell:terminate()
@@ -100,21 +106,24 @@ local shell = {}
     ---@param input string
     function shell:recordHistory(input)
         local command_history_path = "/etc/logs/command_history.log"
-        local history = self.command_history or {}
+        local history = self.command_history
 
         table.insert(history, input)
 
-        while history and #history > 100 do
+        while #history > 100 do
             table.remove(history, 1)
         end
-
         self.command_history = history
-        local file = fs.open(command_history_path, "w")
-        if file then
-            for _, line in ipairs(history) do
-                fs.write(file, line .. "\n")
+
+        local history_snapshot = table.concat(history, "\n")
+
+        if history_snapshot ~= self.last_history_snapshot then
+            local file = fs.open(command_history_path, "w")
+            if file then
+                fs.write(file, history_snapshot .. "\n")
+                fs.close(file)
             end
-            fs.close(file)
+            self.last_history_snapshot = history_snapshot
         end
     end
 
@@ -139,7 +148,7 @@ local shell = {}
     --- @param prompt string|nil
     --- @return string prompt
     function shell:input(prompt)
-        prompt = self.prompt
+        prompt = prompt or self.prompt
         local input = terminal.read(prompt)
         if input and input ~= "" then
             self:recordHistory(input)
