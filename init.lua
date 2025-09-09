@@ -1,5 +1,4 @@
 -- init for setting up hardware registries before handing off to main.
-
 do
     local component_invoke = component.invoke
     

@@ -162,7 +162,6 @@ update.flags = {}
         -- The manifest is a text file that contains the list of files to be installed.
         -- It is stored in the LorielleOS-Mod repository.
         local response, err = internet.request(manifest_download_path)
-        print(response, err)
         if not response then
             print("Failed to download manifest. Please check your internet connection.")
             sys.sleep(short_delay)

@@ -87,25 +87,25 @@ local terminal = {}
                 input_buffer:moveRight()
             elseif character == "\\^" then
                 if shell then
-                    shell.command_history_index = shell.command_history_index - 1
-                    local history_line = shell:getHistoryLine(shell.command_history_index)
+                    shell.cmd_hist_i = shell.cmd_hist_i - 1
+                    local history_line = shell:getHistoryLine(shell.cmd_hist_i)
                     if history_line then
                         input_buffer:setText(history_line)
                     else
-                        shell.command_history_index = shell.command_history_index + 1
+                        shell.cmd_hist_i = shell.cmd_hist_i + 1
                     end
                 end
             elseif character == "\\v" then
                 if shell then
-                    shell.command_history_index = shell.command_history_index + 1
-                    local history_line = shell:getHistoryLine(shell.command_history_index)
+                    shell.cmd_hist_i = shell.cmd_hist_i + 1
+                    local history_line = shell:getHistoryLine(shell.cmd_hist_i)
                     if history_line then
                         input_buffer:setText(history_line)
                     else
                         input_buffer:setText("")
                     end
-                    if shell.command_history_index > #shell.command_history then
-                        shell.command_history_index = #shell.command_history + 1
+                    if shell.cmd_hist_i > #shell.cmd_hist then
+                        shell.cmd_hist_i = #shell.cmd_hist + 1
                     end
                 end
             elseif #character == 1 then
