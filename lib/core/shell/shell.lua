@@ -348,9 +348,6 @@ local shell = {}
     function shell:expandTokens(tokens)
         local expanded_tokens = {}
         for _, token in ipairs(tokens) do
-            --if token:match("%$") then
-                --token = self:expandVariables(token)
-            --end
             if token:match("[*?]") then
                 local expanded = self:expandWildCards(token)
                 for _, exp_token in ipairs(expanded) do
@@ -362,20 +359,6 @@ local shell = {}
         end
         return expanded_tokens
     end
-
-    -- Expands environment variables in tokens NOT USED
-    ----@param token string
-    ----@return string env_var
-    --function shell:expandVariables(token)
-        --local result = token
-        --result = result:gsub("%${([^}]+)}", function(variable)
-            --return sys.getenv(variable) or ""
-        --end)
-        --result = result:gsub("%$([%w_]+)", function(variable)
-            --return sys.getenv(variable) or ""
-        --end)
-    --return result
-    --end
 
     -- Expands wildcards in tokens to match filesystem entries
     ---@param pattern string
