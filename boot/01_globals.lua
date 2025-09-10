@@ -6,6 +6,8 @@ _G.display_available = true
 
 _G.primary_gpu.fill(1, 1, width, height, " ") -- clear entire screen
 
+_G.vram_buffer = _G.primary_gpu.allocateBuffer(_G.width, _G.height)
+
 local Component_manager = require("component")
 local component_manager = Component_manager.new()
 _G.component_manager = component_manager

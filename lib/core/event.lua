@@ -56,14 +56,12 @@ event.__index = event
     end
 
     --- Handles key down events
-    --- @param key_code number
     function event:keyDown(_, _, _, key_code)
         local keyboard = _G.keyboard
         return keyboard:triggerKeyDown(key_code)
     end
 
     --- Handles key up events
-    --- @param key_code number
     function event:keyUp(_, _, _, key_code)
         local keyboard = _G.keyboard
         return keyboard:triggerKeyUp(key_code)
@@ -94,9 +92,6 @@ event.__index = event
     end
 
     --- Hotplugging. Takes address makes proxy and then adds to registry.
-    --- @param address string
-    --- @param component_type string
-    --- @return boolean success
     function event:componentAdded(_, address, component_type)
         local component_manager = _G.component_manager
         if component_manager then
@@ -116,9 +111,6 @@ event.__index = event
     end
 
     --- Hotplugging. Removes from registry.
-    --- @param address string
-    --- @param component_type string
-    --- @return boolean success
     function event:componentRemoved(_, address, component_type)
         local component_manager = _G.component_manager
         if component_manager then
@@ -148,10 +140,15 @@ event.__index = event
         return event_type, receiver_addr, sender_addr, port, distance, ...
     end
 
+    -- Handles screen resize events and resets buffers
     function event:screenResized(event_type, screen_addr, new_width, new_height)
         if screen_addr == _G.primary_screen_addr then
+            local gpu = _G.primary_gpu
             _G.width = new_width
             _G.height = new_height
+            gpu.freeAllBuffers()
+            _G.vram_buffer = nil
+            _G.vram_buffer = gpu.allocateBuffer(new_width, new_height)
             return
         end
         return event_type, screen_addr, new_width, new_height

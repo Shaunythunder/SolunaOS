@@ -79,14 +79,30 @@ local lib_path = "/lib/?.lua"
 local core_path = "/lib/core/?.lua"
 local shell_path = "/lib/core/shell/?.lua"
 local component_path = "/lib/component_drivers/?.lua"
-local env_path = "/lib/terminal_apps/?.lua"
+local term_apps_path = "/lib/terminal_apps/?.lua"
+local cmd_env_path = "/lib/core/shell/commands/environment/?.lua"
+local cmd_fs_path = "/lib/core/shell/commands/filesystem/?.lua"
+local cmd_misc_path = "/lib/core/shell/commands/misc/?.lua"
+local cmd_nav_path = "/lib/core/shell/commands/navigation/?.lua"
+local cmd_net_path = "/lib/core/shell/commands/network/?.lua"
+local cmd_sh_path = "/lib/core/shell/commands/sh/?.lua"
+local cmd_sys_path = "/lib/core/shell/commands/system/?.lua"
+local cmd_text_path = "/lib/core/shell/commands/text/?.lua"
 local custom_path = "?.lua"
 
 package.path = lib_path .. ";" ..
                core_path .. ";" ..
                shell_path .. ";" ..
-               env_path .. ";" ..
+               term_apps_path .. ";" ..
                component_path .. ";" ..
+               cmd_env_path .. ";" ..
+               cmd_fs_path .. ";" ..
+               cmd_misc_path .. ";" ..
+               cmd_nav_path .. ";" ..
+               cmd_net_path .. ";" ..
+               cmd_sh_path .. ";" ..
+               cmd_sys_path .. ";" ..
+               cmd_text_path .. ";" ..
                custom_path
 
 --- Loads library or custom API modules.
@@ -101,9 +117,7 @@ _G.require = function(mod_name)
     for pattern in package.path:gmatch("[^;]+") do
         local path = pattern:gsub("?", mod_name)
         local good_path, result = xpcall(_G.dofile, debug.traceback, path)
-        -- Only treat as success if the file pcalled and returned non-nil
         if good_path and result ~= nil then
-            local module_result = result
             loaded_mods[mod_name] = result
             return result
         elseif not good_path and not result:match("Failed to open file:") then

@@ -96,8 +96,8 @@ end
 
 local shell = _G.shell
 
-local success, err, code = xpcall(shell.run, debug.traceback, shell)
-    if not success then
-       error("Shell error: " .. tostring(err))
-    end
--- dofile("/test/internet_test.lua")
+--local success, err, code = xpcall(shell.run, debug.traceback, shell)
+    --if not success then
+       --error("Shell error: " .. tostring(err))
+    --end
+dofile("/test/graphics.lua")

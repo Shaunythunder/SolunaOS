@@ -8,14 +8,14 @@ help.usage = "Usage: help [command]"
 help.flags = {}
 
     local CMD_PATHS = {
-        "/lib/core/shell/commands/filesystem",
-        "/lib/core/shell/commands/navigation",
-        "/lib/core/shell/commands/text",
-        "/lib/core/shell/commands/system",
         "/lib/core/shell/commands/environment",
-        "/lib/core/shell/commands/network",
-        "/lib/core/shell/commands/sh",
+        "/lib/core/shell/commands/filesystem",
         "/lib/core/shell/commands/misc",
+        "/lib/core/shell/commands/network",
+        "/lib/core/shell/commands/navigation",
+        "/lib/core/shell/commands/sh",
+        "/lib/core/shell/commands/system",
+        "/lib/core/shell/commands/text",
        }
 
     function help.execute(args, _, _)
@@ -25,28 +25,22 @@ help.flags = {}
 
        local cmd_name
        if #args == 0 then
-            local shell_cmds = {}
-
-            for _, path in ipairs(CMD_PATHS) do
-                local full_module_path = path
-                local cmds = fs.list(full_module_path)
-                if cmds and fs.isDirectory(full_module_path) then
+            local output = "Available commands:\n"
+            for _, path in pairs(CMD_PATHS) do
+                local cmds = fs.list(path)
+                local group = {}
+                local category_name = path:match("([^/]+)$")
+                if cmds and fs.isDirectory(path) then
                     for _, cmd in ipairs(cmds) do
                         local cmd_name = cmd:match("^(.*)%.lua$")
                         if cmd_name then
-                            table.insert(shell_cmds, cmd_name)
+                            table.insert(group, cmd_name)
                         end
                     end
-                    table.sort(shell_cmds)
+                    table.sort(group)
                 end
-            end
-
-            local output = "Available commands:\n"
-            for i, cmd in ipairs(shell_cmds) do
-                if i > 1 then
-                    output = output .. " | " .. cmd
-                else
-                    output = output .. " " .. cmd
+                if #group > 0 then
+                    output = output .. category_name .. ": " .. table.concat(group, " | ") .. "\n"
                 end
             end
             return output

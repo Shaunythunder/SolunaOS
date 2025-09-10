@@ -12,7 +12,7 @@ comp.flags = {}
         if #args > 0 then
             return comp.usage
         end
-        
+
         if component_manager then
             local comps = component_manager:listComponents()
             for _, comp in ipairs(comps) do

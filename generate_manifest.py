@@ -10,7 +10,11 @@ excluded_files = {'README.txt',
            'license.txt',
            '.gitignore',}
 
-excluded_directories = {'.git',}
+excluded_directories = {'.git',
+                        'venv',
+                        'env',
+                        '__pycache__',
+                        'non_oc_assets',}
 
 def checksum(path):
     with open(path, 'rb') as f:

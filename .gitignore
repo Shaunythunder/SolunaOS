@@ -1,0 +1,6 @@
+venv/
+env/
+*.png
+*.jpg
+non_oc_assets/
+test_oc_assets/

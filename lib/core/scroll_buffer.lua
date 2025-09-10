@@ -20,7 +20,7 @@ local scrollBuffer = {}
         self.max_lines = 60
         self.buffer_index = 1
         self.render_offset = 0
-        self.vram_buffer = gpu.allocateBuffer(w, h - 1)
+        self.vram_buffer = _G.vram_buffer
         self.logging = false
         self.log_file_path = nil
         self:updateMaxLines()
