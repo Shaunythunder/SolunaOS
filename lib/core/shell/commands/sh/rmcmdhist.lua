@@ -8,7 +8,7 @@ rmcmdhist.usage = "Usage: rmcmdhist"
 rmcmdhist.flags = {}
 
     -- Removes the shell command history log file
-    function rmcmdhist.execute(args, input_data, shell)
+    function rmcmdhist.execute(args, _, shell)
         if #args ~= 0 then
             return rmcmdhist.usage
         end

@@ -6,7 +6,7 @@ popd.usage = "Usage: popd"
 popd.flags = {}
 
     -- This command returns to the last saved directory.
-    function popd.execute(args, input_data, shell)
+    function popd.execute(args, _, shell)
         if #args ~= 0 then
             return popd.usage
         end

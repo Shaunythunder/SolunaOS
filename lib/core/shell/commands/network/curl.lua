@@ -6,8 +6,8 @@ local curl = {}
 curl.description = "Sends HTTP requests to a server (GET/POST). Flags require arguments following them. See usage."
 curl.usage = "Usage: curl [flags <arg>] <url>"
 curl.flags = {
-    X = "-X <METHOD> : HTTP method ('GET' or 'POST') Not case sensitive. Default is GET.",
-    d = "-d <DATA> : Data to send in POST request. Data must be string and in quotes if using special characters."
+    X = "-X <method> : HTTP method ('GET' or 'POST') Not case sensitive. Default is GET.",
+    d = "-d <data> : Data to send in POST request. Data must be string and in quotes if using special characters."
 }
 
     local function printUsage()
@@ -18,7 +18,7 @@ curl.flags = {
         end
     end
 
-    function curl.execute(args, input_data, shell)
+    function curl.execute(args, _, _)
         if #args < 1 then
             printUsage()
             return ""

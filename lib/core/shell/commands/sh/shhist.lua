@@ -8,7 +8,7 @@ shhist.description = "Displays the shell command history"
 shhist.usage = "Usage: shhist"
 shhist.flags = {}
 
-    function shhist.execute(args, input_data, shell)
+    function shhist.execute(args, _, shell)
         if #args ~= 0 then
             return shhist.usage
         end

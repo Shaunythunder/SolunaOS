@@ -7,7 +7,7 @@ edit.description = "Opens a file in the text editor"
 edit.usage = "Usage: edit <filename>"
 edit.flags = {}
 
-    function edit.execute(args, input_data, shell)
+    function edit.execute(args, _, shell)
         if #args == 0 or #args > 1 then
             return edit.usage
         end

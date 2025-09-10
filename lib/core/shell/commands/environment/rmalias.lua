@@ -6,7 +6,7 @@ rmalias.usage = "Usage: rmalias"
 rmalias.flags = {}
 
     -- Removes all command aliases
-    function rmalias.execute(args, input_data, shell)
+    function rmalias.execute(args, _, shell)
         if #args ~= 0 then
             return rmalias.usage
         end

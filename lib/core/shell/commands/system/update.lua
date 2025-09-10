@@ -10,11 +10,11 @@ local internet = require("internet")
 local fs = require("filesystem")
 
 local update = {}
-update.description = "Installs or updates SolunaOS from a manifest file"
-update.usage = "Usage: installer"
+update.description = "Updates SolunaOS from a manifest file"
+update.usage = "Usage: update"
 update.flags = {}
 
-    function update.execute(args, input_data, shell)
+    function update.execute(args, _, _)
         if #args ~= 0 then
             return update.usage
         end

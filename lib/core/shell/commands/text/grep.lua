@@ -78,7 +78,7 @@ grep.flags = {
         end
     end
 
-    function grep.execute(args, input_data, shell)
+    function grep.execute(args, input_data, _)
         if #args == 0 then
             grep.printUsage()
             return ""

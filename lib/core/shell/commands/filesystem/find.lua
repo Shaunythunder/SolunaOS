@@ -7,7 +7,7 @@ find.description = "Find files by name or pattern. Accepts wildcards * and ?"
 find.usage = "Usage: find <filename or pattern>"
 find.flags = {}
 
-    function find.execute(args, input_data, shell)
+    function find.execute(args, _, _)
         if #args ~= 1 then
             return find.usage
         end

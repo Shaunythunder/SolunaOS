@@ -2,10 +2,10 @@
 
 local osdate = {}
 osdate.description = "Displays the current date and time"
-osdate.usage = "Usage: date"
+osdate.usage = "Usage: osdate"
 osdate.flags = {}
 
-    function osdate.execute(args, input_data, shell)
+    function osdate.execute(args, _, _)
         if #args ~= 0 then
             return osdate.usage
         end

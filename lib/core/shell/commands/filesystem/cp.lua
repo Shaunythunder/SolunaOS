@@ -8,7 +8,7 @@ cp.usage = "Usage: cp <source> <destination>"
 cp.flags = {}
 
     -- Copies a file or directory
-    function cp.execute(args, input_data, shell)
+    function cp.execute(args, _, shell)
         if #args < 2 then
             return cp.usage
         end

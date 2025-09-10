@@ -8,7 +8,7 @@ df.description = "Displays free disk space"
 df.usage = "Usage: df"
 df.flags = {}
 
-    function df.execute(args, input_data, shell)
+    function df.execute(args, _, _)
         if #args ~= 0 then
             return df.usage
         end

@@ -5,7 +5,7 @@ uname.description = "Displays system information"
 uname.usage = "Usage: uname"
 uname.flags = {}
 
-    function uname.execute(args, input_data, shell)
+    function uname.execute(args, _, _)
         if #args ~= 0 then
             return uname.usage
         end

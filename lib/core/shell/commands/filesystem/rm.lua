@@ -4,14 +4,14 @@ local fs = require("filesystem")
 
 local rm = {}
 rm.description = "Removes a file or directory"
-rm.usage = "Usage: rm [-rf] <file>"
+rm.usage = "Usage: rm [flags] <file>"
 rm.flags = {
     f = "Force removal",
     r = "Remove directories and their contents recursively"
 }
 
     -- Removes a file or directory
-    function rm.execute(args, input_data, shell)
+    function rm.execute(args, _, shell)
         if #args == 0 then
             print(rm.usage)
             for flag in pairs(rm.flags) do

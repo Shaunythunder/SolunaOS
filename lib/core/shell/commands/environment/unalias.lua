@@ -2,11 +2,11 @@
 
 local unalias = {}
 unalias.description = "Unset a command alias"
-unalias.usage = "Usage: unalias [name]"
+unalias.usage = "Usage: unalias <name>"
 unalias.flags = {}
 
     -- Unsets a command alias
-    function unalias.execute(args, input_data, shell)
+    function unalias.execute(args, _, shell)
         if #args == 0 or #args > 1 then
             return unalias.usage
         end

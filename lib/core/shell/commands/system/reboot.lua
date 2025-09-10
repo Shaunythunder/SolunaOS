@@ -8,7 +8,7 @@ reboot.usage = "Usage: reboot"
 reboot.flags = {}
 
     -- Reboots the system
-    function reboot.execute(args, input_data, shell)
+    function reboot.execute(args, _, _)
         if #args > 0 then
             return reboot.usage
         end

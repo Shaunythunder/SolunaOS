@@ -8,7 +8,7 @@ mkdir.usage = "Usage: mkdir <directory>"
 mkdir.flags = {}
 
     -- Creates a directory with the specified name
-    function mkdir.execute(args, input_data, shell)
+    function mkdir.execute(args, _, shell)
         if #args == 0 then
             return mkdir.usage
         end

@@ -8,7 +8,7 @@ touch.usage = "Usage: touch <file>"
 touch.flags = {}
 
     -- Creates an empty file or updates the timestamp of an existing file
-    function touch.execute(args, input_data, shell)
+    function touch.execute(args, _, shell)
         if #args == 0 then
             return touch.usage
         end

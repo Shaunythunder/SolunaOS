@@ -8,7 +8,7 @@ shutdown.usage = "Usage: shutdown"
 shutdown.flags = {}
 
     -- Shuts down the system
-    function shutdown.execute(args, input_data, shell)
+    function shutdown.execute(args, _, _)
         if #args > 0 then
             return shutdown.usage
         end

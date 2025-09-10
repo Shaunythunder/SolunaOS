@@ -7,7 +7,7 @@ less.description = "Displays file contents one page at a time"
 less.usage = "Usage: less <filename>"
 less.flags = {}
 
-    function less.execute(args, input_data, shell)
+    function less.execute(args, _, shell)
         if #args == 0 or #args > 1 then
             return less.usage
         end

@@ -8,7 +8,7 @@ cat.usage = "Usage: cat <file>"
 cat.flags = {}
 
     -- Does not display correctly. issue at display layer
-    function cat.execute(args, input_data, shell)
+    function cat.execute(args, _, shell)
         if #args == 0 then
             return cat.usage
         end

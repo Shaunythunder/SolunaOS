@@ -8,7 +8,7 @@ comptype.usage = "Usage: comptype <component_type>"
 comptype.flags = {}
 
     --- Lists all registered hardware components of specified type.
-    function comptype.execute(args, input_data, shell)
+    function comptype.execute(args, _, _)
         if #args ~= 1 then
             return comptype.usage
         end
@@ -17,7 +17,7 @@ comptype.flags = {}
         if component_manager then
             local components = component_manager:findComponentsByType(component_type)
             for _, component in ipairs(components) do
-                print(string.format("Component Type: %s, Address: %s"  , component.component_type, component.address))
+                print(string.format("Type: %s, Address: %s"  , component.component_type, component.address))
             end
         else
             print("Error: Component manager not found.")

@@ -7,7 +7,7 @@ tail.description = "Displays the last lines of a file"
 tail.usage = "Usage: tail <file> [lines]"
 tail.flags = {}
 
-    function tail.execute(args, input_data, shell)
+    function tail.execute(args, _, _)
         if #args == 0 then
             return tail.usage
         end

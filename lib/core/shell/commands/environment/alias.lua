@@ -6,7 +6,7 @@ alias.usage = "Usage: alias [name] ['command']"
 alias.flags = {}
 
     -- Sets a command alias
-    function alias.execute(args, input_data, shell)
+    function alias.execute(args, _, shell)
         if #args == 0 then
             if not shell.aliases or next(shell.aliases) == nil then
                 return "No aliases set"

@@ -8,7 +8,7 @@ ls.usage = "Usage: ls [directory]"
 ls.flags = {}
 
     -- This command lists the files in a directory.
-    function ls.execute(args, input_data, shell)
+    function ls.execute(args, _, shell)
         local dir
         if #args == 0 then
             dir = shell.current_dir

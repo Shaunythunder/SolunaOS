@@ -5,7 +5,7 @@ clear.description = "Clears the terminal screen"
 clear.usage = "Usage: clear"
 clear.flags = {}
 
-    function clear.execute(args, input_data, shell)
+    function clear.execute(args, _, shell)
         if #args > 0 then
             return clear.usage
         end

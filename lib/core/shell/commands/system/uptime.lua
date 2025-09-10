@@ -8,7 +8,7 @@ uptime.usage = "Usage: uptime"
 uptime.flags = {}
 
     -- Gets the system uptime
-    function uptime.execute(args, input_data, shell)
+    function uptime.execute(args, _, _)
         if #args > 0 then
             return uptime.usage
         end

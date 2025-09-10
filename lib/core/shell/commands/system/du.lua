@@ -8,7 +8,7 @@ du.description = "Displays disk usage"
 du.usage = "Usage: du"
 du.flags = {}
 
-    function du.execute(args, input_data, shell)
+    function du.execute(args, _, _)
         if #args ~= 0 then
             return du.usage
         end

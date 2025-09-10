@@ -5,14 +5,14 @@ address.description = "Displays the system's unique address"
 address.usage = "Usage: address"
 address.flags = {}
 
-    function address.execute(args, input_data, shell)
+    function address.execute(args, _, _)
         if #args ~= 0 then
             return address.usage
         end
 
-        local address = computer.getBootAddress()
-        if address then
-            print("System Address: " .. address)
+        local addr = computer.getBootAddress()
+        if addr then
+            print("System Address: " .. addr)
         else
             print("Unable to retrieve system address.")
         end

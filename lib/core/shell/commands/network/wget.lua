@@ -8,7 +8,7 @@ wget.description = "Downloads a file from a URL and saves it"
 wget.usage = "Usage: wget <url> <output_file>"
 wget.flags = {}
 
-    function wget.execute(args, input_data, shell)
+    function wget.execute(args, _, _)
 
         if #args ~= 2 then
             return wget.usage

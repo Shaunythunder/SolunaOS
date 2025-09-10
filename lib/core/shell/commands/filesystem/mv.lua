@@ -8,7 +8,7 @@ mv.usage = "Usage: mv <source> <destination>"
 mv.flags = {}
 
     -- Moves a file or directory
-    function mv.execute(args, input_data, shell)
+    function mv.execute(args, _, shell)
         if #args < 2 then
             return mv.usage
         end

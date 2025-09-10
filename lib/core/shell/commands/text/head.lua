@@ -7,7 +7,7 @@ head.description = "Displays the first lines of a file"
 head.usage = "Usage: head <file> [lines]"
 head.flags = {}
 
-    function head.execute(args, input_data, shell)
+    function head.execute(args, _, _)
         if #args == 0 then
             return head.usage
         end
@@ -23,7 +23,7 @@ head.flags = {}
         local content = fs.read(file)
         fs.close(file)
         local result = {}
-        local count = 0 
+        local count = 0
 
         for line in content:gmatch("[^\n]+") do
             if count < lines then

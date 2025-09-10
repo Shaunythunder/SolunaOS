@@ -8,7 +8,7 @@ pushd.usage = "Usage: pushd [directory]"
 pushd.flags = {}
 
     -- This command saves the current directory and changes to a new one.
-    function pushd.execute(args, input_data, shell)
+    function pushd.execute(args, _, shell)
         local target_dir
         if #args > 1 then
             return pushd.usage

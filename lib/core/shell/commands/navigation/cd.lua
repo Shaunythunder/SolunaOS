@@ -8,11 +8,11 @@ cd.usage = "Usage: cd [directory]"
 cd.flags = {}
 
     -- This command changes the current directory of the shell.
-    function cd.execute(args, input_data, shell)
+    function cd.execute(args, _, shell)
         if #args > 1 then
             return cd.usage
         end
-        
+
         local target_dir
         if #args == 0 then
             target_dir = "/home"

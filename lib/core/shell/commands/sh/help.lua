@@ -18,7 +18,7 @@ help.flags = {}
         "/lib/core/shell/commands/misc",
        }
 
-    function help.execute(args, flags, shell)
+    function help.execute(args, _, _)
         if #args > 1 then
             return help.usage
         end
@@ -40,7 +40,7 @@ help.flags = {}
                     table.sort(shell_cmds)
                 end
             end
-      
+
             local output = "Available commands:\n"
             for i, cmd in ipairs(shell_cmds) do
                 if i > 1 then
@@ -50,7 +50,7 @@ help.flags = {}
                 end
             end
             return output
-            
+
         elseif #args == 1 then
             cmd_name = args[1]
             for _, path in ipairs(CMD_PATHS) do

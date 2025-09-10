@@ -8,7 +8,7 @@ comp.usage = "Usage: comp"
 comp.flags = {}
 
     --- Lists all registered hardware components.
-    function comp.execute(args, input_data, shell)
+    function comp.execute(args, _, _)
         if #args > 0 then
             return comp.usage
         end

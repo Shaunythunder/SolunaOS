@@ -5,7 +5,7 @@ exit.description = "Exits the shell"
 exit.usage = "Usage: exit"
 exit.flags = {}
 
-  function exit.execute(args, input_data, shell)
+  function exit.execute(args, _, _)
     if #args > 0 then
         return exit.usage
     end
