@@ -32,8 +32,8 @@ _G.bootPrint = function(...)
 end
 
 --- Opens and runs files on the OS.
---- @param file_path string -- File path to file.
---- @param ... any -- Arguments (optional)
+--- @param file_path string
+--- @param ... any
 --- @return any
 _G.dofile = function(file_path, ...)
     local filesystem = _G.OS_FILESYSTEM
@@ -89,14 +89,13 @@ package.path = lib_path .. ";" ..
                component_path .. ";" ..
                custom_path
 
-               
 --- Loads library or custom API modules.
 --- @param mod_name string
 --- @return any
 _G.require = function(mod_name)
-    local loaded_modules = _G.loaded_modules
-    if loaded_modules[mod_name] then
-        return loaded_modules[mod_name]
+    local loaded_mods = _G.loaded_modules
+    if loaded_mods[mod_name] then
+        return loaded_mods[mod_name]
     end
     local traceback
     for pattern in package.path:gmatch("[^;]+") do
@@ -105,7 +104,7 @@ _G.require = function(mod_name)
         -- Only treat as success if the file pcalled and returned non-nil
         if good_path and result ~= nil then
             local module_result = result
-            loaded_modules[mod_name] = result
+            loaded_mods[mod_name] = result
             return result
         elseif not good_path and not result:match("Failed to open file:") then
             traceback = result
@@ -118,9 +117,9 @@ end
 --- @param mod_name string
 --- @return boolean result
 _G.unrequire = function(mod_name)
-    local loaded_modules = _G.loaded_modules
-    if loaded_modules[mod_name] then
-        loaded_modules[mod_name] = nil
+    local loaded_mods = _G.loaded_modules
+    if loaded_mods[mod_name] then
+        loaded_mods[mod_name] = nil
         collectgarbage()
         return true
     else
@@ -130,9 +129,9 @@ end
 
 --- Clears entire module cache.
 _G.wipeRequireCache = function()
-    local loaded_modules = _G.loaded_modules
-    for entry in pairs(loaded_modules) do
-        loaded_modules[entry] = nil
+    local loaded_mods = _G.loaded_modules
+    for entry in pairs(loaded_mods) do
+        loaded_mods[entry] = nil
     end
     collectgarbage()
 end

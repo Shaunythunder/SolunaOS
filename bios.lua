@@ -1,6 +1,5 @@
 -- SolunaOS EEPROM BIOS v1.0
 -- Compatible with OpenOS
--- This file is responsible for booting the system by loading the init.lua
 
 local BSOD_BLUE = 0x0000FF
 local WHITE = 0xFFFFFF
@@ -14,9 +13,9 @@ do
     local gpu = component.list("gpu")()
 
     --- Safely invoke a method from component. Handles errors.
-    ---@param address string - component address
-    ---@param method string - method name to invoke
-    ---@param ... any -- method arguments for component ("gpu" for example).
+    ---@param address string
+    ---@param method string 
+    ---@param ... any
     local function boot_invoke(address, method, ...)
         local result = table.pack(pcall(component_invoke, address, method, ...))
         if not result[1] then
@@ -26,21 +25,21 @@ do
         end
     end
 
-    --- Gets EEPROM data (boot address)
-    --- @return string|nil - boot address or nil if not set
+    --- Gets boot address from EEPROM
+    --- @return string|nil boot_address
     computer.getBootAddress = function()
         return boot_invoke(eeprom, "getData")
     end
 
-    --- Sets EEPROM data (boot address)
-    --- @param address string|nil - address to set or nil to clear
+    --- Sets boot address from EEPROM
+    --- @param address string|nil
     computer.setBootAddress = function(address)
         return boot_invoke(eeprom, "setData", address)
     end
 
-    --- Attempts to load hardware components on the given address.
-    --- once init.lua is found.
-    --- @param address string - component address
+    --- Attempts to load hardware components on the given address
+    --- @param address string
+    --- @return function|nil init_function
     local function tryLoadFrom(address)
         local handle, reason = boot_invoke(address, "open", "/init.lua")
         if not handle then
@@ -60,7 +59,7 @@ do
 
     --- Placing in global scope to be cleaned up later.
     --- Error message function to display BSOD. BIOS version.
-    --- @param msg string The message to display
+    --- @param msg string
     --- @return nil
     _G.errorMessage = function(msg)
         if gpu and screen then
@@ -77,7 +76,6 @@ do
         end
     end
 
-    -- Initial GPU setup
     boot_invoke(gpu, "bind", screen)
 
     if not gpu or not screen then
@@ -86,8 +84,6 @@ do
         return
     end
 
-    -- Search for a bootable medium and load init.lua from it.
-    -- Test if loadable components are
     local reason
     if computer.getBootAddress() then
         init, reason = tryLoadFrom(computer.getBootAddress())

@@ -1,26 +1,27 @@
--- init for setting up hardware registries before handing off to main.
+-- /init.lua
+
 do
     local component_invoke = component.invoke
-    
+
     local addr, invoke = computer.getBootAddress(), component_invoke
-    ---@param file string
-    local function loadfile(file)
-        local handle = assert(invoke(addr, "open", file))
+    ---@param file_path string
+    local function loadfile(file_path)
+        local handle = assert(invoke(addr, "open", file_path))
         local buffer = ""
         repeat
             local data = invoke(addr, "read", handle, 4096)
             buffer = buffer .. (data or "")
         until not data
         if #buffer == 0 then
-            error("File is empty: " .. file)
+            error("File is empty: " .. file_path)
         end
         invoke(addr, "close", handle)
-        return load(buffer, "=" .. file, "bt", _G)
+        return load(buffer, "=" .. file_path, "bt", _G)
     end
 
     --- Detect a hardware component(s) and save in register
-    ---@param component_type string -- The name of the hardware component/API type.
-    ---@return table|nil component -- The address and proxy for the component, or nil if not found.
+    ---@param component_type string
+    ---@return table|nil component address and proxy
     local function detectHardware(component_type)
         local devices = {}
         for address in component.list(component_type, true) do
@@ -35,13 +36,6 @@ do
         end
     end
 
-  --[[
-    Hardware component registry
-    A table mapping hardware component names to their first detected proxy (or nil if not found).
-    Each entry is an array of {address, proxy} tables for all detected components of that type, or nil if none found
-    ]]
-
-    --- PLAN ON TRIMMING DOWN LATER ONCE I KNOW WHAT I NEED
     local hardware_registers = {
     printer3d            = detectHardware("printer3d"),
     abstract_bus         = detectHardware("abstract_bus"),
@@ -88,7 +82,7 @@ do
 
     local boot, boot_err = loadfile("/boot/boot.lua")
     if boot then
-        local ok, load_err = pcall(boot, hardware_registers, loadfile)      
+        local ok, load_err = pcall(boot, hardware_registers, loadfile)
         if not ok then
             error("Failed to run boot.lua: " .. tostring(load_err))
         end

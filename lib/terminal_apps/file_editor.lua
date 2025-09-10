@@ -19,7 +19,7 @@ local file_editor = {}
         self.filename = ""
         self.new_file = false
         self.file_saved = false
-        self.save_error = false
+        self.save_err = false
         self.find_buffer = ""
         self.find_iterator = 1
         self.cut_buffer = ""
@@ -27,6 +27,7 @@ local file_editor = {}
         return self
     end
 
+    -- Cleans up the editor instance
     function file_editor:terminate()
         self.editor_buffer:terminate()
         for attribute in pairs(self) do
@@ -35,6 +36,8 @@ local file_editor = {}
         setmetatable(self, nil)
     end
 
+    -- Main run loop for the file editor
+    --- @param filepath string
     function file_editor:run(filepath)
         local filename = fs.getNameFromPath(filepath)
         local buffer = self.editor_buffer
@@ -45,7 +48,7 @@ local file_editor = {}
             buffer:loadFromFile(filepath)
             self:renderCurrentStatus()
         else
-            local file, err = fs.open(filepath, "w")
+            local file, _ = fs.open(filepath, "w")
             fs.close(file)
             self.new_file = true
             buffer:renderTopLine("New file: " .. filename)
@@ -60,66 +63,68 @@ local file_editor = {}
         draw.clear()
     end
 
+    -- Handles user input in the editor
     function file_editor:input()
-        local character
+        local char
         local output
-        while character == nil do
+        while char == nil do
             cursor:show()
             output = event:listen(0.5)
             if output ~= nil and type(output) == "string" then
-                character = output
+                char = output
                 cursor:show()
                 break
             end
             cursor:hide()
             output = event:listen(0.5)
             if output ~= nil and type(output) == "string" then
-                character = output
+                char = output
                 cursor:show()
                 break
             end
         end
-        return character
+        return char
     end
 
+    -- Main editing loop
     function file_editor:edit()
         while true do
-            local character = self:input()
-            if character == "\n" then
+            local char = self:input()
+            if char == "\n" then
                 self.editor_buffer:newLine()
-            elseif character == "\t" then
+            elseif char == "\t" then
                 self.editor_buffer:insertCharacter("    ")
-            elseif character == "\b" then
+            elseif char == "\b" then
                 self.editor_buffer:backspace()
-            elseif character == "del" then
+            elseif char == "del" then
                 self.editor_buffer:delete()
-            elseif character == "<-" then
+            elseif char == "<-" then
                 self.editor_buffer:moveCursorLeft()
-            elseif character == "->" then
+            elseif char == "->" then
                 self.editor_buffer:moveCursorRight()
-            elseif character == "\\^" then
+            elseif char == "\\^" then
                 self.editor_buffer:moveCursorUp()
-            elseif character == "\\v" then
+            elseif char == "\\v" then
                 self.editor_buffer:moveCursorDown()
-            elseif character == "s" and keyboard:getCtrl() then
+            elseif char == "s" and keyboard:getCtrl() then
                 local ok = self.editor_buffer:saveToFile(self.filepath)
                 if ok then
                     self.file_saved = true
                 else
-                    self.save_error = true
+                    self.save_err = true
                 end
-            elseif character == "w" and keyboard:getCtrl() then
+            elseif char == "w" and keyboard:getCtrl() then
                 break
-            elseif character == "f" and keyboard:getCtrl() then
+            elseif char == "f" and keyboard:getCtrl() then
                 self:findMode()
-            elseif character == "k" and keyboard:getCtrl() then
+            elseif char == "k" and keyboard:getCtrl() then
                 self.cut_buffer = self.editor_buffer:cutLine()
-            elseif character == "u" and keyboard:getCtrl() then
+            elseif char == "u" and keyboard:getCtrl() then
                 if self.cut_buffer and self.cut_buffer ~= "" then
                     self.editor_buffer:uncutLine(self.cut_buffer)
                 end
-            elseif #character == 1 then
-                self.editor_buffer:insertCharacter(character)
+            elseif #char == 1 then
+                self.editor_buffer:insertCharacter(char)
             end
             local x_pos, y_pos = self.editor_buffer:getCursorPosition()
             cursor:setPosition(x_pos, y_pos)
@@ -127,18 +132,19 @@ local file_editor = {}
                 self.editor_buffer:renderTopLine("File saved: " .. self.filename)
                 self.editor_buffer:renderBottomLine(help_text)
                 self.file_saved = false
-            elseif not self.save_error then
+            elseif not self.save_err then
                 self:renderCurrentStatus()
             else
                 self.editor_buffer:renderTopLine("Error saving " .. self.filename)
                 self.editor_buffer:renderBottomLine(help_text)
-                self.save_error = false
+                self.save_err = false
             end
         end
     end
-    
 
-
+    -- Clamps whitespace for status line formatting
+    --- @param value any
+    --- @param length number|nil
     function file_editor:clampWhitespace(value, length)
         length = length or 4
         local text = tostring(value)
@@ -152,6 +158,7 @@ local file_editor = {}
         return text
     end
 
+    -- Renders the current status line
     function file_editor:renderCurrentStatus()
         local filename = self.filename
         local total_lines = self.editor_buffer:getTotalLines()
@@ -167,24 +174,25 @@ local file_editor = {}
         self.editor_buffer:renderBottomLine(help_text)
     end
 
+    -- Handles find mode functionality
     function file_editor:findMode()
-        local height = _G.height
+        local h = _G.height
         local find_string = "Find text: " .. self.find_buffer
         self.editor_buffer:renderTopLine(find_string)
         self.editor_buffer:renderBottomLine("Find mode: enter search term (Ctrl+C to exit)")
-        cursor:setPosition(#find_string + 1, height - 1)
+        cursor:setPosition(#find_string + 1, h - 1)
         while true do
-            local character = self:input()
-            if character == "c" and keyboard:getCtrl() then
+            local char = self:input()
+            if char == "c" and keyboard:getCtrl() then
                 break
-            elseif character == "\b" then
+            elseif char == "\b" then
                 if #self.find_buffer > 0 then
                     self.find_buffer = self.find_buffer:sub(1, -2)
                 end
-            elseif character == "\n" then
+            elseif char == "\n" then
                 self.find_iterator = self.find_iterator + 1
-            elseif #character == 1 then
-                self.find_buffer = self.find_buffer .. character
+            elseif #char == 1 then
+                self.find_buffer = self.find_buffer .. char
             end
             local results = self.editor_buffer:findText(self.find_buffer)
             if self.find_iterator > #results then
@@ -200,7 +208,7 @@ local file_editor = {}
             end
             self.editor_buffer:renderTopLine(find_string .. " " .. report_string)
             self.editor_buffer:renderBottomLine("Find mode: enter search term (Ctrl+C to exit)")
-            cursor:setPosition(#find_string + 1, height - 1)
+            cursor:setPosition(#find_string + 1, h - 1)
         end
     end
 

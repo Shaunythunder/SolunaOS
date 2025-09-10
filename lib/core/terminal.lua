@@ -51,65 +51,65 @@ local terminal = {}
         cursor:setPosition(#prepend_text + 1, cursor:getHomeY())
         local input_buffer = text_buffer.new()
         while true do
-            local character
+            local char
             local output
-            while character == nil do
+            while char == nil do
                 cursor:show()
                 output = event:listen(0.5)
                 if output ~= nil and type(output) == "string" then
-                    character = output
+                    char = output
                     break
                 end
                 cursor:hide()
                 output = event:listen(0.5)
                 if output ~= nil and type(output) == "string" then
-                    character = output
+                    char = output
                     break
                 end
             end
-            if character == "\n" then
+            if char == "\n" then
                 cursor:hide()
                 local string = input_buffer:getText()
                 return string
-            elseif character == "pgup" then
+            elseif char == "pgup" then
                 scroll_buffer:scrollUp()
-            elseif character == "pgdn" then
+            elseif char == "pgdn" then
                 scroll_buffer:scrollDown()
-            elseif character == "\t" then
+            elseif char == "\t" then
                 input_buffer:insert("    ")
-            elseif character == "\b" then
+            elseif char == "\b" then
                 input_buffer:backspace()
-            elseif character == "del" then
+            elseif char == "del" then
                 input_buffer:delete()
-            elseif character == "<-" then
+            elseif char == "<-" then
                 input_buffer:moveLeft()
-            elseif character == "->" then
+            elseif char == "->" then
                 input_buffer:moveRight()
-            elseif character == "\\^" then
+            elseif char == "\\^" then
                 if shell then
-                    shell.cmd_hist_i = shell.cmd_hist_i - 1
-                    local history_line = shell:getHistoryLine(shell.cmd_hist_i)
+                    shell.cmd_hist_index = shell.cmd_hist_index - 1
+                    local history_line = shell:getHistoryLine(shell.cmd_hist_index)
                     if history_line then
                         input_buffer:setText(history_line)
                     else
-                        shell.cmd_hist_i = shell.cmd_hist_i + 1
+                        shell.cmd_hist_index = shell.cmd_hist_index + 1
                     end
                 end
-            elseif character == "\\v" then
+            elseif char == "\\v" then
                 if shell then
-                    shell.cmd_hist_i = shell.cmd_hist_i + 1
-                    local history_line = shell:getHistoryLine(shell.cmd_hist_i)
+                    shell.cmd_hist_index = shell.cmd_hist_index + 1
+                    local history_line = shell:getHistoryLine(shell.cmd_hist_index)
                     if history_line then
                         input_buffer:setText(history_line)
                     else
                         input_buffer:setText("")
                     end
-                    if shell.cmd_hist_i > #shell.cmd_hist then
-                        shell.cmd_hist_i = #shell.cmd_hist + 1
+                    if shell.cmd_hist_index > #shell.cmd_hist then
+                        shell.cmd_hist_index = #shell.cmd_hist + 1
                     end
                 end
-            elseif #character == 1 then
-                input_buffer:insert(character)
+            elseif #char == 1 then
+                input_buffer:insert(char)
             end
             local string = prepend_text .. input_buffer:getText()
             draw.termText(string, 1)

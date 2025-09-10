@@ -14,9 +14,9 @@ comp.flags = {}
         end
         
         if component_manager then
-            local components = component_manager:listComponents()
-            for _, component in ipairs(components) do
-                print(string.format("Component Type: %s, Address: %s"  , component.component_type, component.address))
+            local comps = component_manager:listComponents()
+            for _, comp in ipairs(comps) do
+                print(string.format("Component Type: %s, Address: %s"  , comp.component_type, comp.address))
             end
         else
             print("Error: Component manager not found.")

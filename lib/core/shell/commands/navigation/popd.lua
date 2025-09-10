@@ -10,7 +10,6 @@ popd.flags = {}
         if #args ~= 0 then
             return popd.usage
         end
-        
         local success = shell:popSavedDir()
         if not success then
             return "Saved directory stack is empty"

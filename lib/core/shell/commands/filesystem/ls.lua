@@ -9,15 +9,15 @@ ls.flags = {}
 
     -- This command lists the files in a directory.
     function ls.execute(args, input_data, shell)
-        local directory
+        local dir
         if #args == 0 then
-            directory = shell.current_dir
+            dir = shell.current_dir
         elseif #args > 1 then
             return ls.usage
         else
-            directory = shell:getAbsPath(args[1])
+            dir = shell:getAbsPath(args[1])
         end
-        local files = fs.list(directory)
+        local files = fs.list(dir)
         local objects = {}
         if files and type(files) == "table" then
             for i, object in ipairs(files) do
@@ -30,7 +30,7 @@ ls.flags = {}
             end
             return table.concat(objects, " ")
         else
-            return "Error: Unable to list directory " .. directory
+            return "Error: Unable to list directory " .. dir
         end
     end
 

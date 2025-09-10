@@ -37,7 +37,7 @@ local keyboard = {}
     end
 
     -- Binds a key code to a key down and key up handler
-    --- @param key_code number codes in keyboard.lua
+    --- @param key_code number
     --- @param key_down function
     --- @param key_up function
     --- @return boolean result
@@ -194,11 +194,7 @@ local keyboard = {}
         return letter
     end
 
-    --- Types a symbol, taking into account the current shift state
-    --- @param symbol string 
-    --- @return string symbol
-    function keyboard:typeSymbol(symbol)
-        local shift_symbols = {
+    local SHIFT_SYMBOLS = {
             ["1"] = "!",
             ["2"] = "@",
             ["3"] = "#",
@@ -221,8 +217,13 @@ local keyboard = {}
             ["/"] = "?",
             ["`"] = "~"
         }
-        if (self.left_shift or self.right_shift) and shift_symbols[symbol] then
-            return shift_symbols[symbol]
+
+    --- Types a symbol, taking into account the current shift state
+    --- @param symbol string 
+    --- @return string symbol
+    function keyboard:typeSymbol(symbol)
+        if (self.left_shift or self.right_shift) and SHIFT_SYMBOLS[symbol] then
+            return SHIFT_SYMBOLS[symbol]
         else
             return symbol
         end
@@ -233,7 +234,6 @@ local keyboard = {}
         local keyboard = self
 
         local keys = {
-            -- Function keys
             K_F1 = {code = 0x3B, handler = nil},
             K_F2 = {code = 0x3C, handler = nil},
             K_F3 = {code = 0x3D, handler = nil},

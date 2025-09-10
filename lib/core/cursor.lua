@@ -57,13 +57,13 @@ local cursor = {}
     --- @param x_pos number
     --- @param y_pos number
     function cursor:setPosition(x_pos, y_pos)
-        local height = _G.height
-        local width = _G.width
-        if self.x_max_pos > width then
-            self.x_max_pos = width
+        local h = _G.height
+        local w = _G.width
+        if self.x_max_pos > w then
+            self.x_max_pos = w
         end
-        if self.y_max_pos > height then
-            self.y_max_pos = height
+        if self.y_max_pos > h then
+            self.y_max_pos = h
         end
         if x_pos < self.x_min_pos then
             self.x_pos = self.x_min_pos

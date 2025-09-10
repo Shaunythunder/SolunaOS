@@ -2,7 +2,6 @@
 
 local fs = require("filesystem")
 local terminal = require("terminal")
-local sys = require("system")
 
 local shell = {}
     shell.__index = shell
@@ -17,7 +16,7 @@ local shell = {}
         self.cmds = {}
         self.cmd_hist = {}
         self:loadHistory()
-        self.cmd_hist_i = #self.cmd_hist + 1
+        self.cmd_hist_index = #self.cmd_hist + 1
         self.aliases = {}
         self:loadAliases()
         return self
@@ -69,7 +68,7 @@ local shell = {}
 
     -- Resets the command history index to the latest entry
     function shell:resetHistoryIndex()
-        self.cmd_hist_i = #self.cmd_hist + 1
+        self.cmd_hist_index = #self.cmd_hist + 1
     end
 
     -- Loads command history from log file into shell memory
@@ -186,7 +185,7 @@ local shell = {}
     -- Creates an empty command structure
     function shell:createEmptyCommand()
         return {
-            command = nil,
+            cmd = nil,
             args = {},
             output_redir = nil,
             append_redir = false,
@@ -392,7 +391,7 @@ local shell = {}
     -- Builds out command structure with tokenized inputs.
     ---@param tokens table
     ---@param og_input string original input
-    ---@return table command_structure
+    ---@return table cmd_struct
     function shell:parseCommandStructure(tokens, og_input)
         local cmds = {}
         local current_cmd = self:createEmptyCommand()
@@ -402,7 +401,7 @@ local shell = {}
             local token = tokens[i]
 
             if token == "|" then
-                if current_cmd.command then
+                if current_cmd.cmd then
                     table.insert(cmds, current_cmd)
                 end
                 current_cmd = self:createEmptyCommand()
@@ -426,24 +425,24 @@ local shell = {}
             elseif token == "&" then
                 current_cmd.background = true
             elseif token == "&&" then
-                if current_cmd.command then
+                if current_cmd.cmd then
                     current_cmd.chain_op = "&&"
                     table.insert(cmds, current_cmd)
                 end
                 current_cmd = self:createEmptyCommand()
             elseif token == "||" then
-                if current_cmd.command then
+                if current_cmd.cmd then
                     current_cmd.chain_op = "||"
                     table.insert(cmds, current_cmd)
                 end
             elseif token == ";" then
-                if current_cmd.command then
+                if current_cmd.cmd then
                     table.insert(cmds, current_cmd)
                 end
                 current_cmd = self:createEmptyCommand()
             else
-                if not current_cmd.command then
-                    current_cmd.command = token
+                if not current_cmd.cmd then
+                    current_cmd.cmd = token
                 else
                     table.insert(current_cmd.args, token)
                 end
@@ -451,11 +450,11 @@ local shell = {}
             i = i + 1
         end
 
-        if current_cmd.command then
+        if current_cmd.cmd then
             table.insert(cmds, current_cmd)
         end
         return {
-            commands = cmds,
+            cmds = cmds,
             original_input = og_input,
             has_pipes = self:hasPipes(cmds),
             has_redirection = self:hasRedirects(cmds),

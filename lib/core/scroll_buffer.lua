@@ -12,15 +12,15 @@ local scrollBuffer = {}
 
     function scrollBuffer.new()
         local self = setmetatable({}, scrollBuffer)
-        local height = _G.height
-        local width = _G.width
+        local h = _G.height
+        local w = _G.width
         self.buffer_lines = {}
         self.visible_lines = {}
         self.visible_max_lines = 60
         self.max_lines = 60
         self.buffer_index = 1
         self.render_offset = 0
-        self.vram_buffer = gpu.allocateBuffer(width, height - 1)
+        self.vram_buffer = gpu.allocateBuffer(w, h - 1)
         self.logging = false
         self.log_file_path = nil
         self:updateMaxLines()
@@ -45,8 +45,9 @@ local scrollBuffer = {}
 
     -- Sets max visible lines equal to screen height
     function scrollBuffer:updateMaxLines()
-        self.visible_max_lines = _G.height
-        self.max_lines = _G.height * 2
+        local h = _G.height
+        self.visible_max_lines = h
+        self.max_lines = h * 2
     end
 
     function scrollBuffer:getLines()
@@ -83,7 +84,8 @@ local scrollBuffer = {}
     -- Scrolls the buffer to a specific position
     ---@param y_pos number
     function scrollBuffer:scrollToPosition(y_pos)
-        local end_index = #self.buffer_lines - _G.height + 1
+        local h = _G.height
+        local end_index = #self.buffer_lines - h + 1
         if end_index < 1 then
             end_index = 1
         end
@@ -120,7 +122,9 @@ local scrollBuffer = {}
     function scrollBuffer:getLogFilePath()
         return self.log_file_path
     end
-    
+
+    -- Sets the log file path
+    ---@param file_path string
     function scrollBuffer:setLogFilePath(file_path)
         if not fs.exists(file_path) then
             local file, err = fs.open(file_path, "w")
@@ -132,6 +136,10 @@ local scrollBuffer = {}
         self.log_file_path = file_path
     end
 
+    --- Exports the entire scroll buffer to a file
+    --- @param file_path string
+    --- @return boolean success
+    --- @return string|nil error
     function scrollBuffer:exportHistory(file_path)
         local file, err = fs.open(file_path, "w")
         if not file then
@@ -144,20 +152,28 @@ local scrollBuffer = {}
         return true
     end
 
+    --- Appends new lines to a log file with timestamp
+    --- @param file_path string
+    --- @param lines table
+    --- @return boolean success
     function scrollBuffer:exportLine(file_path, lines)
         local os_time_stamp = sys.uptime()
         local file, err = fs.open(file_path, "a")
         if not file then
             return false, err
         end
+        local output = {}
         for _, line in ipairs(lines) do
-            local stamped_line = "[" .. os_time_stamp .. "] " .. line
-            fs.write(file, stamped_line .. "\n")
+            table.insert(output, string.format("[%0.2f] %s", os_time_stamp, line))
         end
+        fs.write(file, table.concat(output, "\n") .. "\n")
         fs.close(file)
         return true
     end
 
+    --- Clears the log file content
+    --- @return boolean success
+    --- @return string|nil error
     function scrollBuffer:clearLogFile()
         if self.log_file_path then
             local file, err = fs.open(self.log_file_path, "w")
@@ -174,23 +190,24 @@ local scrollBuffer = {}
     --- Updates the visible buffer based on the current buffer index
     function scrollBuffer:updateVisibleBuffer()
         gpu.setActiveBuffer(self.vram_buffer)
-        local height = _G.height
-        local width = _G.width
+        local h = _G.height
+        local w = _G.width
         self.visible_lines = {}
         local screen_index = 1 - self.render_offset
-        self.buffer_index = #self.buffer_lines - _G.height + 2
-        local end_index = self.buffer_index + _G.height - 1
+        self.buffer_index = #self.buffer_lines - h + 2
+        local end_index = self.buffer_index + h - 1
 
         for i = self.buffer_index, end_index do
-            if self.buffer_lines[i] then
-                table.insert(self.visible_lines, self.buffer_lines[i])
-                gpu.fill(1, screen_index, _G.width, 1, " ")
-                draw.termText(self.buffer_lines[i], 1, screen_index)
+            local line = self.buffer_lines[i]
+            if line then
+                table.insert(self.visible_lines, line)
+                gpu.fill(1, screen_index, w, 1, " ")
+                draw.termText(line, 1, screen_index)
                 screen_index = screen_index + 1
             end
         end
         gpu.setActiveBuffer(0)
-        gpu.bitblt(0, 1, 1, width, height - 1, self.vram_buffer, 1, 1)
+        gpu.bitblt(0, 1, 1, w, h - 1, self.vram_buffer, 1, 1)
     end
 
     -- Scrolls the buffer up by one line
@@ -230,10 +247,12 @@ local scrollBuffer = {}
     ---@param setting string|nil scroll to "editor" or "terminal". Defaults to "terminal"
     ---@return number y_home_increment
     function scrollBuffer:addLine(raw_line, setting)
-        local setting = setting or "terminal"
-        if setting ~= "terminal" and setting ~= "editor" then
-            error("Invalid setting for addLine: " .. tostring(setting) .. "must use 'terminal', 'editor' or leave nil.")
+        local mode = setting or "terminal"
+        if mode ~= "terminal" and mode ~= "editor" then
+            error("Invalid setting for addLine: " .. tostring(mode) .. "must use 'terminal', 'editor' or leave nil.")
         end
+
+        local w = _G.width
         local lines_added = 1
         local wrap = 0
         local lines = {}
@@ -243,10 +262,10 @@ local scrollBuffer = {}
 
         for _, line in ipairs(lines) do
             while #line > 0 do
-                if #line > _G.width then
-                    local wrapped_line = line:sub(1, _G.width)
+                if #line > w then
+                    local wrapped_line = line:sub(1, w)
                     table.insert(self.buffer_lines, wrapped_line)
-                    line = line:sub(_G.width + 1)
+                    line = line:sub(w + 1)
                     lines_added = lines_added + 1
                     wrap = wrap + 1
                 else
@@ -258,9 +277,9 @@ local scrollBuffer = {}
         self:updateMaxLines()
         self:removeOldLines()
 
-        if setting == "editor" then
+        if mode == "editor" then
             self:scrollToTop()
-        elseif setting == "terminal" then
+        elseif mode == "terminal" then
             self:scrollToBottom()
         end
         if self.logging and self.log_file_path then
@@ -387,26 +406,28 @@ local scrollBuffer = {}
     --- @param x_pos number
     --- @param y_pos number
     function scrollBuffer:setCursorPosition(x_pos, y_pos)
+        local x = x_pos
+        local y = y_pos
         local height = _G.height
-        if x_pos < 1 then
-            x_pos = 1
+        if x < 1 then
+            x = 1
         end
-        if y_pos < 1 then
-            y_pos = 1
+        if y < 1 then
+            y = 1
         end
-        if y_pos > height - 2 then
-            y_pos = height - 2
+        if y > height - 2 then
+            y = height - 2
         end
-        if y_pos > #self.buffer_lines then
-            y_pos = #self.buffer_lines
+        if y > #self.buffer_lines then
+            y = #self.buffer_lines
         end
-        local line = self.buffer_lines[y_pos] or ""
+        local line = self.buffer_lines[y] or ""
         local line_length = #line
-        if x_pos > line_length + 1 then
-            x_pos = line_length + 1
+        if x > line_length + 1 then
+            x = line_length + 1
         end
-        self.cursor_x = x_pos
-        self.cursor_y = y_pos
+        self.cursor_x = x
+        self.cursor_y = y
     end
 
     -- Moves the cursor left one space
@@ -484,10 +505,10 @@ local scrollBuffer = {}
     function scrollBuffer:updateVisibleEditor()
         gpu.setActiveBuffer(self.vram_buffer)
         draw.clear()
-        local height = _G.height
-        local width = _G.width
+        local h = _G.height
+        local w = _G.width
         local screen_index = 1
-        local end_index = self.buffer_index + _G.height - 3
+        local end_index = self.buffer_index + h - 3
 
         for line = self.buffer_index, end_index do
             if self.buffer_lines[line] then
@@ -496,7 +517,7 @@ local scrollBuffer = {}
             end
         end
         gpu.setActiveBuffer(0)
-        gpu.bitblt(0, 1, 1, width, height - 2, self.vram_buffer, 1, 1)
+        gpu.bitblt(0, 1, 1, w, h - 2, self.vram_buffer, 1, 1)
     end
 
     --- Updates a single line in the buffer
@@ -509,31 +530,31 @@ local scrollBuffer = {}
     end
 
     -- Inserts a character at the current cursor position
-    ---@param character string
-    function scrollBuffer:insertCharacter(character)
-        local width = _G.width
+    ---@param char string
+    function scrollBuffer:insertCharacter(char)
+        local w = _G.width
         local line_to_change = self.cursor_y + self.buffer_index - 1
         local line = self.buffer_lines[line_to_change] or ""
         local before = line:sub(1, self.cursor_x - 1)
         local after = line:sub(self.cursor_x)
-        local new_line = before .. character .. after
+        local new_line = before .. char .. after
 
         local cursor_increase = 1
-        if character == "    " then
+        if char == "    " then
             cursor_increase = 4
         end
 
-        if #new_line > width then
-            local wrapped_line = new_line:sub(1, width)
-            local overflow = new_line:sub(width + 1)
+        if #new_line > w then
+            local wrapped_line = new_line:sub(1, w)
+            local overflow = new_line:sub(w + 1)
             local next_line = self.buffer_lines[line_to_change + 1] or ""
 
             self.buffer_lines[line_to_change] = wrapped_line
             self.buffer_lines[line_to_change + 1] = overflow .. next_line
 
-            if self.cursor_x > width then
+            if self.cursor_x > w then
                 self.cursor_y = self.cursor_y + 1
-                self.cursor_x = self.cursor_x - width + cursor_increase
+                self.cursor_x = self.cursor_x - w + cursor_increase
             else
                 self.cursor_x = self.cursor_x + cursor_increase
             end
@@ -701,17 +722,17 @@ local scrollBuffer = {}
     end
 
     -- Get the total number of characters in the buffer
-    --- @return number total_characters
+    --- @return number tot_chars
     function scrollBuffer:getTotalCharacters()
-        local total_characters = 0
+        local tot_chars = 0
         for _, line in ipairs(self.buffer_lines) do
-            total_characters = total_characters + #line
+            tot_chars = tot_chars + #line
         end
-        return total_characters
+        return tot_chars
     end
 
     --- Get the total number of lines in the buffer
-    --- @return number total_lines
+    --- @return number tot_lines
     function scrollBuffer:getTotalLines()
         return #self.buffer_lines
     end
@@ -744,12 +765,14 @@ local scrollBuffer = {}
     end
 
 --+++++++++++++++++++++++++++ Pager Capabilities +++++++++++++++++++++++++++++++++++++
-    
+
+    -- Goes to the start of the buffer
     function scrollBuffer:goToStart()
         self.buffer_index = 1
         self:updateVisiblePager()
     end
 
+    -- Goes to the end of the buffer
     function scrollBuffer:goToEnd()
         self.buffer_index = #self.buffer_lines - _G.height + 1
         if self.buffer_index < 1 then
@@ -758,6 +781,7 @@ local scrollBuffer = {}
         self:updateVisiblePager()
     end
 
+    -- Scrolls the buffer up by one line
     function scrollBuffer:lineUp()
         if self.buffer_index > 1 then
             self.buffer_index = self.buffer_index - 1
@@ -765,13 +789,15 @@ local scrollBuffer = {}
         end
     end
 
+    -- Scrolls the buffer down by one line
     function scrollBuffer:lineDown()
         if self.buffer_index < #self.buffer_lines - _G.height + 1 then
             self.buffer_index = self.buffer_index + 1
             self:updateVisiblePager()
         end
     end
-    
+
+    -- Scrolls the buffer up by one page
     function scrollBuffer:pageUp()
         local height = _G.height
         if self.buffer_index > 1 then
@@ -783,6 +809,7 @@ local scrollBuffer = {}
         end
     end
 
+    -- Scrolls the buffer down by one page
     function scrollBuffer:pageDown()
         local height = _G.height
         if self.buffer_index < #self.buffer_lines - height + 1 then
@@ -794,7 +821,7 @@ local scrollBuffer = {}
         end
     end
 
-        -- Updates the visible editor area
+    -- Updates the visible editor area
     function scrollBuffer:updateVisiblePager()
         gpu.setActiveBuffer(self.vram_buffer)
         draw.clear()

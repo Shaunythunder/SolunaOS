@@ -21,15 +21,15 @@ cd.flags = {}
         end
         if target_dir == ".." then
             if shell.current_dir ~= "/" then
-                local characters_until_slash = 0
+                local chars_to_slash = 0
                 for i = #shell.current_dir - 1, 1, -1 do
                     if shell.current_dir:sub(i, i) == "/" then
-                        characters_until_slash = i
+                        chars_to_slash = i
                         break
                     end
                 end
-                if characters_until_slash > 1 then
-                    target_dir = shell.current_dir:sub(1, characters_until_slash - 1)
+                if chars_to_slash > 1 then
+                    target_dir = shell.current_dir:sub(1, chars_to_slash - 1)
                 else
                     target_dir = "/"
                 end
@@ -41,12 +41,10 @@ cd.flags = {}
         end
 
         target_dir = shell:getAbsPath(target_dir)
-        
-        local fs_addr, rel_path, structure = fs.resolveIfMount(target_dir)
-        
+
         local exists = fs.exists(target_dir)
         local isDir = fs.isDirectory(target_dir)
-        
+
         if exists and isDir then
             shell.current_dir = target_dir
             shell:updatePrompt(shell.current_dir)

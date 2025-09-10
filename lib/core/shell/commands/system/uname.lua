@@ -10,7 +10,7 @@ uname.flags = {}
             return uname.usage
         end
 
-        --Globals set in boot.lua
+        -- Globals set in boot.lua
         local os_name = _G.OS_NAME
         local os_version = _G.OS_VERSION
         local os_address = _G.BOOT_ADDRESS

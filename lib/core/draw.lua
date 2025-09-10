@@ -1,5 +1,4 @@
 -- /lib/core/draw.lua
--- This module handles the universal rendering
 
 local gpu = _G.primary_gpu
 local cursor = _G.cursor
@@ -8,9 +7,6 @@ local WHITE = 0xFFFFFF
 
 local draw = {}
 
--- TODO FIGURE OUT THE SMALLEST POSSIBLE PIXEL AND GET A RENDER METHOD FOR IT
--- IF POSSIBLE TO WORK INTO THESE METHODS, FIGURE OUT THE SMALLEST WIDTH HEIGHT
-
     --- Updates the resolution variables
     function draw.updateResolution()
         _G.width, _G.height = gpu.getResolution()
@@ -18,11 +14,11 @@ local draw = {}
 
     --- Clears the screen to black
     function draw.clear()
-        local height = _G.height
-        local width = _G.width
+        local h = _G.height
+        local w = _G.width
         gpu.setForeground(WHITE)
         gpu.setBackground(BLACK)
-        gpu.fill(1, 1, width, height, " ")
+        gpu.fill(1, 1, w, h, " ")
     end
 
     --- Renders a string at specified coordinates at the specified color
@@ -31,9 +27,9 @@ local draw = {}
     --- @param color number Color value (0xRRGGBB)
     --- @return string|nil error
     function draw.pixel(x_pos, y_pos, color)
-        local height = _G.height
-        local width = _G.width
-        if x_pos < 1 or x_pos > width or y_pos < 1 or y_pos > height then
+        local h = _G.height
+        local w = _G.width
+        if x_pos < 1 or x_pos > w or y_pos < 1 or y_pos > h then
             return "Position out of bounds"
         end
         gpu.setForeground(color)
@@ -41,7 +37,7 @@ local draw = {}
         gpu.fill(x_pos, y_pos, 1, 1, " ")
     end
 
-    -- Gets the RGB color value from individual R, G, B components
+    -- Gets the RGB color value from R, G, B components
     --- @param r number Red component (0-255)
     --- @param g number  Green component (0-255)
     --- @param b number Blue component (0-255)
@@ -56,68 +52,73 @@ local draw = {}
         return color
     end
 
-    function draw.singleCharacter(character, x_pos, y_pos, foreground, background)
-        local height = _G.height
+    -- Renders a single character at specified coordinates at the specified color
+    --- @param char string
+    --- @param x_pos number|nil X position (optional, defaults to cursor X)
+    --- @param y_pos number|nil Y position (optional, defaults to cursor home Y)
+    --- @param foreground number|nil (0xRRGGBB, optional, defaults to white)
+    --- @param background number|nil (0xRRGGBB, optional, defaults to black)
+    --- @return string|nil error
+    function draw.singleCharacter(char, x_pos, y_pos, foreground, background)
+        local h = _G.height
         local x_home = x_pos or cursor:getX()
         local home_y = y_pos or cursor:getHomeY()
-        local foreground = foreground or WHITE
-        local background = background or BLACK
-        gpu.setForeground(foreground)
-        gpu.setBackground(background)
-        if home_y > height then
+        local fg = foreground or WHITE
+        local bg = background or BLACK
+        gpu.setForeground(fg)
+        gpu.setBackground(bg)
+        if home_y > h then
             return "Y position out of bounds"
         end
-        gpu.set(x_home, home_y, character)
+        gpu.set(x_home, home_y, char)
     end
 
     function draw.singleLineText(raw_line, x_pos, y_pos, foreground, background)
-        local height = _G.height
-        local width = _G.width
+        local h = _G.height
+        local w = _G.width
         local x_home = x_pos or cursor:getX()
         local home_y = y_pos or cursor:getHomeY()
-        local foreground = foreground or WHITE
-        local background = background or BLACK
-        gpu.setForeground(foreground)
-        gpu.setBackground(background)
-        if home_y > height then
+        local fg = foreground or WHITE
+        local bg = background or BLACK
+        gpu.setForeground(fg)
+        gpu.setBackground(bg)
+        if home_y > h then
             return "Y position out of bounds"
         end
-        gpu.fill(1, home_y, width, 1, " ")
-        gpu.set(x_home, home_y, raw_line:sub(1, width))
+        gpu.fill(1, home_y, w, 1, " ")
+        gpu.set(x_home, home_y, raw_line:sub(1, w))
     end
 
     function draw.highlightText(string, x_pos, y_pos, foreground, background)
-        local height = _G.height
-        local width = _G.width
-        local foreground = foreground or BLACK
-        local background = background or WHITE
-        gpu.setForeground(foreground)
-        gpu.setBackground(background)
+        local fg = foreground or BLACK
+        local bg = background or WHITE
+        gpu.setForeground(fg)
+        gpu.setBackground(bg)
         gpu.fill(x_pos, y_pos, #string, 1, " ")
         gpu.set(x_pos, y_pos, string)
     end
 
-    -- Renders text in a terminal fashion, line by line
+    -- Renders text for terminal, line by line
     ---@param raw_line string
     ---@param x_pos number|nil
     ---@param y_pos number|nil
     ---@param foreground number|nil hex only, use render.getRGB() white default
     ---@param background number|nil hex only, use render.getRGB() black default
     function draw.termText(raw_line, x_pos, y_pos, foreground, background)
-        local height = _G.height
-        local width = _G.width
+        local h = _G.height
+        local w = _G.width
         local active_scroll_buffer = _G.scroll_buffer
         local x_home = x_pos or cursor:getX()
         local home_y = y_pos or cursor:getHomeY()
-        local foreground = foreground or WHITE
-        local background = background or BLACK
-        gpu.setForeground(foreground)
-        gpu.setBackground(background)
-        local y_below = height - home_y - 1
+        local fg = foreground or WHITE
+        local bg = background or BLACK
+        gpu.setForeground(fg)
+        gpu.setBackground(bg)
+        local y_below = h - home_y - 1
         if y_below > 0 then
-            gpu.fill(1, home_y + 1, width, y_below, " ")
+            gpu.fill(1, home_y + 1, w, y_below, " ")
         end
-        
+
          local lines = {}
         for actual_line in raw_line:gmatch("([^\n]*)\n?") do
             table.insert(lines, actual_line)
@@ -137,9 +138,9 @@ local draw = {}
             end
         end
 
-        gpu.fill(1, home_y, width, #display_lines, " ")
+        gpu.fill(1, home_y, w, #display_lines, " ")
         for _, line_text in ipairs(display_lines) do
-            if home_y > height then
+            if home_y > h then
                 if active_scroll_buffer then
                     active_scroll_buffer:pushUp()
                     home_y = home_y - 1
@@ -220,10 +221,10 @@ local draw = {}
 
     -- SAME DEAL AS CIRCLES, DRAFT VERSION UNTESTED
     function draw.ellipse(center_x, center_y, x_radius, y_radius, color, lineweight)
-        local height = _G.height
-        local width = _G.width
+        local h = _G.height
+        local w = _G.width
         lineweight = lineweight or 0
-        if center_x < 1 or center_x > width or center_y < 1 or center_y > height then
+        if center_x < 1 or center_x > w or center_y < 1 or center_y > h then
             return "Position out of bounds"
         end
 
@@ -254,7 +255,7 @@ local draw = {}
         draw.freeLine(x_pos_3, y_pos_3, x_pos_1, y_pos_1, color)
     end
 
-    -- Draws a horizontal line from start_x to end_x at the specified y coordinate
+    -- Draws a horizontal line from start_x to end_x from y_pos
     ---@param start_x number
     ---@param start_y number
     ---@param length number
@@ -264,7 +265,7 @@ local draw = {}
         gpu.fill(start_x, start_y, length, 1, " ")
     end
 
-    --- Draws a vertical line from start_y to end_y at the specified x coordinate
+    --- Draws a vertical line from start_y to end_y from x_pos
     --- @param start_x number
     --- @param start_y number
     --- @param height number
@@ -274,7 +275,7 @@ local draw = {}
         gpu.fill(start_x, start_y, 2, height, " ")
     end
 
-    --- Draws a free line from start to end coordinates using Bresenham's algorithm
+    --- Draws a free line from start to end coordinates
     --- @param start_x number
     --- @param start_y number
     --- @param end_x number

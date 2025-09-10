@@ -13,8 +13,8 @@ rmcmdhist.flags = {}
             return rmcmdhist.usage
         end
 
-        local command_history_path = "/etc/logs/command_history.log"
-        local abs_path = shell:getAbsPath(command_history_path)
+        local cmd_hist_path = "/etc/logs/command_history.log"
+        local abs_path = shell:getAbsPath(cmd_hist_path)
 
         if not fs.exists(abs_path) then
             return "Error: Command history file does not exist: " .. abs_path
@@ -26,7 +26,7 @@ rmcmdhist.flags = {}
         end
 
         -- Clear in-memory history as well
-        shell.command_history = {}
+        shell.cmd_hist = {}
         shell:resetHistoryIndex()
 
         return ""

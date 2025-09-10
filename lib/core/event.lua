@@ -1,5 +1,4 @@
 -- lib/core/event.lua
--- Provides core event handling functionality for SolunaOS
 
 local fs = require("filesystem")
 local cursor = _G.cursor
@@ -14,10 +13,16 @@ event.__index = event
         return self
     end
 
+    -- Returns the handler function for a given event type
+    --- @param event_type string
+    --- @return any|nil handler_function
     function event:getHandler(event_type)
         return self.event_handlers[event_type]
     end
 
+    -- Validates if an event type is recognized
+    --- @param event_type string
+    --- @return string|nil valid_event_type
     function event:getEventType(event_type)
         return self.event_handlers[event_type] and event_type or nil
     end
@@ -42,17 +47,11 @@ event.__index = event
     --- Triggers an event based on signal
     --- @param ... any
     --- @return any function_result passes to event:listen()
-    function event:trigger(...)
+    function event:trigger(event_type, ...)
         cursor:show()
-        local args = {...}
-        local event_handler = nil
-        for _, handler_entry in pairs(self.event_handlers) do
-            if handler_entry.event_type == args[1] then
-                event_handler = handler_entry.handler
-            end
-        end
-        if event_handler ~= nil then
-            return event_handler(table.unpack(args))
+        local handler_entry = self.event_handlers[event_type]
+        if handler_entry and handler_entry.handler then
+            return handler_entry.handler(event_type, ...)
         end
     end
 
@@ -187,31 +186,29 @@ event.__index = event
     end
 
     function event:initHandlers()
-        local event = self
-
         self.event_handlers = {
-        KEY_DOWN = {event_type = "key_down", handler = function(...) return self:keyDown(...) end},
-        KEY_UP = {event_type = "key_up", handler = function(...) return self:keyUp(...) end},
-        CLIPBOARD = {event_type = "clipboard", handler = function(...) return self:clipboard(...) end},
-        TOUCH = {event_type = "touch", handler = function(...) return self:touch(...) end},
-        DRAG = {event_type = "drag", handler = function(...) return self:drag(...) end},
-        DROP = {event_type = "drop", handler = function(...) return self:drop(...) end},
-        SCROLL = {event_type = "scroll", handler = function(...) return self:scroll(...) end},
-        WALK = {event_type = "walk", handler = function(...) return self:walk(...) end},
-        COMPONENT_ADDED = {event_type = "component_added", handler = function(...) return self:componentAdded(...) end},
-        COMPONENT_REMOVED = {event_type = "component_removed", handler = function(...) return self:componentRemoved(...) end},
-        COMPONENT_AVAILABLE = {event_type = "component_available", handler = function(...) return self:componentAvailable(...) end},
-        COMPONENT_UNAVAILABLE = {event_type = "component_unavailable", handler = function(...) return self:componentUnavailable(...) end},
-        INTERRUPTED = {event_type = "interrupted", handler = function(...) return self:interrupted(...) end},
-        MODEM_MESSAGE = {event_type = "modem_message", handler = function(...) return self:modemMessage(...) end},
-        SCREEN_RESIZED = {event_type = "screen_resized", handler = function(...) return self:screenResized(...) end},
-        TERM_AVAILABLE = {event_type = "term_available", handler = function() return self:termAvailable() end},
-        TERM_UNAVAILABLE = {event_type = "term_unavailable", handler = function() return self:termUnavailable() end},
-        REDSTONE_CHANGED = {event_type = "redstone_changed", handler = function(...) return self:redstoneChanged(...) end},
-        MOTION = {event_type = "motion", handler = function(...) return self:motion(...) end},
-        INVENTORY_CHANGED = {event_type = "inventory_changed", handler = function(...) return self:inventoryChanged(...) end},
-        BUS_MESSAGE = {event_type = "bus_message", handler = function(...) return self:busMessage(...) end},
-        CARRIAGE_MOVED = {event_type = "carriage_moved", handler = function(...) return self:carriageMoved(...) end}
+            ["key_down"] = {handler = function(...) return self:keyDown(...) end},
+            ["key_up"] = {handler = function(...) return self:keyUp(...) end},
+            ["clipboard"] = {handler = function(...) return self:clipboard(...) end},
+            ["touch"] = {handler = function(...) return self:touch(...) end},
+            ["drag"] = {handler = function(...) return self:drag(...) end},
+            ["drop"] = {handler = function(...) return self:drop(...) end},
+            ["scroll"] = {handler = function(...) return self:scroll(...) end},
+            ["walk"] = {handler = function(...) return self:walk(...) end},
+            ["component_added"] = {handler = function(...) return self:componentAdded(...) end},
+            ["component_removed"] = {handler = function(...) return self:componentRemoved(...) end},
+            ["component_available"] = {handler = function(...) return self:componentAvailable(...) end},
+            ["component_unavailable"] = {handler = function(...) return self:componentUnavailable(...) end},
+            ["interrupted"] = {handler = function(...) return self:interrupted(...) end},
+            ["modem_message"] = {handler = function(...) return self:modemMessage(...) end},
+            ["screen_resized"] = {handler = function(...) return self:screenResized(...) end},
+            ["term_available"] = {handler = function() return self:termAvailable() end},
+            ["term_unavailable"] = {handler = function() return self:termUnavailable() end},
+            ["redstone_changed"] = {handler = function(...) return self:redstoneChanged(...) end},
+            ["motion"] = {handler = function(...) return self:motion(...) end},
+            ["inventory_changed"] = {handler = function(...) return self:inventoryChanged(...) end},
+            ["bus_message"] = {handler = function(...) return self:busMessage(...) end},
+            ["carriage_moved"] = {handler = function(...) return self:carriageMoved(...) end}
         }
     end
 

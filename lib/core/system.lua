@@ -39,10 +39,10 @@ local system = {}
     end
 
     --- Sleeps for a specified duration.
-    --- @param sleep_duration number
-    function system.sleep(sleep_duration)
-        assert(type(sleep_duration) == "number", "Duration must be a number")
-        local sleep_end = computer.uptime() + sleep_duration
+    --- @param slp_dur number
+    function system.sleep(slp_dur)
+        assert(type(slp_dur) == "number", "Duration must be a number")
+        local sleep_end = computer.uptime() + slp_dur
         while sleep_end > computer.uptime() do
             computer.pullSignal(0.1)
         end

@@ -17,14 +17,18 @@ local pager = {}
         return self
     end
 
+    -- Cleans up the pager instance
     function pager:terminate()
         self.pager_buffer:terminate()
         for attribute in pairs(self) do
-            self[attribute] = nil -- Clear methods to free up memory
+            self[attribute] = nil
         end
         setmetatable(self, nil)
     end
 
+    -- Main run loop for the pager
+    --- @param filepath string
+    --- @param mode string|nil "start" or "end"
     function pager:run(filepath, mode)
         if mode == nil or (mode ~= "start" and mode ~= "end") then
             mode = "start"
@@ -46,40 +50,43 @@ local pager = {}
         cursor:setVisible()
     end
 
+    -- Handles user input for the pager
+     --- @return string character
     function pager:input()
-        local character
+        local char
         local output
-        while character == nil do
+        while char == nil do
             output = event:listen(0.5)
             if output ~= nil and type(output) == "string" then
-                character = output
+                char = output
                 break
             end
             output = event:listen(0.5)
             if output ~= nil and type(output) == "string" then
-                character = output
+                char = output
                 break
             end
         end
-        return character
+        return char
     end
 
+    -- Main pager functionality loop
     function pager:pager()
         while true do
-            local character = self:input()
-            if character == "\\^" then
+            local char = self:input()
+            if char == "\\^" then
                 self.pager_buffer:lineUp()
-            elseif character == "\\v" then
+            elseif char == "\\v" then
                 self.pager_buffer:lineDown()
-            elseif character == "pgup" then
+            elseif char == "pgup" then
                 self.pager_buffer:pageUp()
-            elseif character == "pgdn" then
+            elseif char == "pgdn" then
                 self.pager_buffer:pageDown()
-            elseif character == "home" then
+            elseif char == "home" then
                 self.pager_buffer:goToStart()
-            elseif character == "end" then
+            elseif char == "end" then
                 self.pager_buffer:goToEnd()
-            elseif character == "q" then
+            elseif char == "q" then
                 break
             end
         end
