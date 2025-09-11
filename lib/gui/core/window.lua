@@ -2,6 +2,7 @@
 
 local drawgui = require("drawgui")
 local unicode = require("unicode")
+local color = require("colors")
 
 local window = {}
 window.__index = window
@@ -14,8 +15,8 @@ window.__index = window
         self.height = win_height
         self.saved_width = nil
         self.saved_height = nil
-        self.bg = bg_color or 0x2D2D2D
-        self.border = border_color or 0xCCCCCC
+        self.bg = bg_color or color.DARKBLUE
+        self.border = border_color or color.LIGHTGRAY
         self.title = title or nil
         self.focused_window = false
         self.mode = "normal" -- normal, minimized, maximized
@@ -63,7 +64,7 @@ window.__index = window
         self.height = new_height
         self:calcButtons()
     end
-    
+
     function window:setMode(new_mode, side)
         if new_mode == "normal" or new_mode == "minimized" or new_mode == "maximized" or new_mode == "half_max" then
             self.mode = new_mode
@@ -138,18 +139,23 @@ window.__index = window
 
         self.close_button_x = end_rack_x
         self.close_button_y = button_rack_y
+        self.close_button_color = color.DARKGRAY
         self.close_button_symbol = unicode.CLOSE
 
         self.max_button_x = end_rack_x - button_spacing
         self.max_button_y = button_rack_y
+        self.max_button_color = color.DARKGRAY
         if self.mode == "maximized" then
             self.max_button_symbol = unicode.EXIT_FULLSCREEN
+            self.max_button_x = end_rack_x - button_spacing - 1
         else
             self.max_button_symbol = unicode.MAXIMIZE
+            self.max_button_x = end_rack_x - button_spacing
         end
 
         self.min_button_x = self.max_button_x - button_spacing
         self.min_button_y = button_rack_y
+        self.min_button_color = color.DARKGRAY
         self.min_button_symbol = unicode.MINIMIZE
     end
 

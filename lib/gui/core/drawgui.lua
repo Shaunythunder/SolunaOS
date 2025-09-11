@@ -65,9 +65,13 @@ local drawgui = {}
         local max_pos = window_obj.max_button_x or (close_pos - 2)
         local min_pos = window_obj.min_button_x or (max_pos - 2)
 
-        draw.singleCharacter(close_symbol, close_pos, button_rack_y, colors.BLACK, border_color)
-        draw.singleCharacter(max_symbol, max_pos, button_rack_y, colors.BLACK, border_color)
-        draw.singleCharacter(min_symbol, min_pos, button_rack_y, colors.BLACK, border_color)
+        local close_color = window_obj.close_button_color or colors.DARKGRAY
+        local max_color = window_obj.max_button_color or colors.DARKGRAY
+        local min_color = window_obj.min_button_color or colors.DARKGRAY
+
+        draw.singleCharacter(close_symbol, close_pos, button_rack_y, colors.BLACK, close_color)
+        draw.singleCharacter(max_symbol, max_pos, button_rack_y, colors.BLACK, max_color)
+        draw.singleCharacter(min_symbol, min_pos, button_rack_y, colors.BLACK, min_color)
     end
 
     function drawgui.renderDivider(y_pos, color)

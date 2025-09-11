@@ -39,15 +39,10 @@ window_manager.__index = window_manager
     function window_manager:handleClick(x_pos, y_pos)
         for i = #self.windows, 1, -1 do
             local window = self.windows[i]
-            if window:isPointInside(x_pos, y_pos) then
-                self.focused_window = window
-                window:focused()
-                table.remove(self.windows, i)
-                table.insert(self.windows, window)
-                return window
-            elseif window:isPointInsideClose(x_pos, y_pos) then
+            if window:isPointInsideClose(x_pos, y_pos) then
                 self:remove(window)
-                return
+                window:terminate()
+                return nil
             elseif window:isPointInsideMin(x_pos, y_pos) then
                 window:setMode("minimized")
                 return
@@ -57,6 +52,13 @@ window_manager.__index = window_manager
                 else
                     window:setMode("maximized")
                 end
+                return
+            elseif window:isPointInside(x_pos, y_pos) then
+                self.focused_window = window
+                window:focused()
+                table.remove(self.windows, i)
+                table.insert(self.windows, window)
+                return window
             end
         end
     end

@@ -18,6 +18,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
+Additional Condition:
+
+If you modify the Software and distribute it under a different name or as part 
+of a derivative work, you must remove all original branding, including but not 
+limited to names, logos, and trademarks associated with "SolunaOS" and the 
+original author.
+
+This condition is in addition to the permissions and limitations described above.
+
 -------------------------------------------------------------------------------
 
 Special thanks for the open computers mod for making this possible!
