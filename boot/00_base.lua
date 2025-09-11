@@ -75,11 +75,15 @@ _G.package = _G.package or {}
 
 -- Package paths for module loading
 -- These paths allow require("<module_name>") instead of the full path
-local lib_path = "/lib/?.lua"
+
 local core_path = "/lib/core/?.lua"
+local gui_core_path = "/lib/gui/core/?.lua"
 local shell_path = "/lib/core/shell/?.lua"
 local component_path = "/lib/component_drivers/?.lua"
 local term_apps_path = "/lib/terminal_apps/?.lua"
+local gui_widgets_path = "/lib/gui/widgets/?.lua"
+local utilities_path = "/utilities/?.lua"
+local lib_path = "/lib/?.lua"
 local cmd_env_path = "/lib/core/shell/commands/environment/?.lua"
 local cmd_fs_path = "/lib/core/shell/commands/filesystem/?.lua"
 local cmd_misc_path = "/lib/core/shell/commands/misc/?.lua"
@@ -90,20 +94,23 @@ local cmd_sys_path = "/lib/core/shell/commands/system/?.lua"
 local cmd_text_path = "/lib/core/shell/commands/text/?.lua"
 local custom_path = "?.lua"
 
-package.path = lib_path .. ";" ..
-               core_path .. ";" ..
-               shell_path .. ";" ..
-               term_apps_path .. ";" ..
-               component_path .. ";" ..
-               cmd_env_path .. ";" ..
-               cmd_fs_path .. ";" ..
-               cmd_misc_path .. ";" ..
-               cmd_nav_path .. ";" ..
-               cmd_net_path .. ";" ..
-               cmd_sh_path .. ";" ..
-               cmd_sys_path .. ";" ..
-               cmd_text_path .. ";" ..
-               custom_path
+package.path =  core_path .. ";" ..
+                gui_core_path .. ";" ..
+                shell_path .. ";" ..
+                component_path .. ";" ..
+                term_apps_path .. ";" ..
+                gui_widgets_path .. ";" ..
+                utilities_path .. ";" ..
+                cmd_env_path .. ";" ..
+                cmd_fs_path .. ";" ..
+                cmd_misc_path .. ";" ..
+                cmd_nav_path .. ";" ..
+                cmd_net_path .. ";" ..
+                cmd_sh_path .. ";" ..
+                cmd_sys_path .. ";" ..
+                cmd_text_path .. ";" ..
+                lib_path .. ";" ..
+                custom_path
 
 --- Loads library or custom API modules.
 --- @param mod_name string

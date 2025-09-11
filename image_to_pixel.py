@@ -9,7 +9,7 @@ from PIL import Image
 def rgb_to_hex(rgb):
     return (rgb[0] << 16) + (rgb[1] << 8) + rgb[2]
 
-img = Image.open("non_oc_assets/117ddb5a45afc9ee4e16d58d36b22a6d.png").resize((160, 100))
+img = Image.open("non_oc_assets/starcraft-terran.jpg").resize((160, 100))
 pixels = img.load()
 
 with open("test_oc_assets/output_pixels.lua", "w") as file:

@@ -293,20 +293,28 @@ local draw = {}
     ---@param start_x number
     ---@param start_y number
     ---@param length number
-    ---@param color number hex only, use render.getRGB()
-    function draw.horzLine(start_x, start_y, length, color)
-        gpu.setBackground(color)
-        gpu.fill(start_x, start_y, length, 1, " ")
+    ---@param thickness number|nil defaults to 1
+    ---@param color number|nil hex only, use render.getRGB()
+    function draw.horzLine(start_x, start_y, length, thickness, color)
+        local thickness = thickness or 1
+        if color then
+            gpu.setForeground(color)
+        end
+        gpu.fill(start_x, start_y, length, thickness, " ")
     end
 
     --- Draws a vertical line from start_y to end_y from x_pos
     --- @param start_x number
     --- @param start_y number
     --- @param height number
-    --- @param color number hex only, use render.getRGB()
-    function draw.vertLine(start_x, start_y, height, color)
-        gpu.setBackground(color)
-        gpu.fill(start_x, start_y, 2, height, " ")
+    --- @param thickness number|nil defaults to 1
+    --- @param color number|nil hex only, use render.getRGB()
+    function draw.vertLine(start_x, start_y, height, thickness, color)
+        local thickness = thickness or 1
+        if color then
+            gpu.setBackground(color)
+        end
+        gpu.fill(start_x, start_y, thickness, height, " ")
     end
 
     --- Draws a free line from start to end coordinates

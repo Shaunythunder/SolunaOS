@@ -57,7 +57,6 @@ do
     ---@return string[] A list of boot scripts
     local function getBootScripts()
         local scripts = {}
-        local boot_addr = _G.BOOT_ADDRESS
         local filesystem = _G.OS_FILESYSTEM
         for _, filename in ipairs(filesystem.list("/boot")) do
             if filename:match("%.lua$") and filename ~= "boot.lua" then
@@ -100,4 +99,4 @@ local shell = _G.shell
     --if not success then
        --error("Shell error: " .. tostring(err))
     --end
-dofile("/test/graphics.lua")
+dofile("/test/gui.lua")

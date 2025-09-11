@@ -4,7 +4,7 @@
 _G.width, _G.height = _G.primary_gpu.getResolution()
 _G.display_available = true
 
-_G.primary_gpu.fill(1, 1, width, height, " ") -- clear entire screen
+_G.primary_gpu.fill(1, 1, width, height, " ")
 
 _G.vram_buffer = _G.primary_gpu.allocateBuffer(_G.width, _G.height)
 
