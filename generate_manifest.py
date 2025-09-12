@@ -15,6 +15,7 @@ excluded_directories = {'.git',
                         'env',
                         '__pycache__',
                         'asset_processing',
+                        'open_os_utilities',
                         }
 
 def checksum(path):
@@ -37,10 +38,8 @@ with open('install_manifest.lua', 'w') as manifest:
                 manifest.write(f"{{filename = '{relpath}', size = {size}, checksum = {cksum}}},\n")
     manifest.write("}\n")
 
-with open('assets/assets.lua', 'w') as asset_manifest:
-    asset_manifest.write("local assets = {")
-    asset_manifest.write("}\n")
-    asset_manifest.write("\n")
+with open('assets/asset_tables.lua', 'w') as asset_manifest:
+    asset_manifest.write("local asset_tables = {\n")
     for root, dirs, files in os.walk('assets/asset_tables'):
         dirs[:] = [d for d in dirs if d not in excluded_directories]
         # Exclude files in excluded_directories
@@ -51,6 +50,7 @@ with open('assets/assets.lua', 'w') as asset_manifest:
                 if relpath.startswith('.' + os.sep):
                     relpath = relpath[2:]
                 abspath = os.path.join(root, file)
-                asset_manifest.write(f"assets.{filename} = '{relpath}'\n")
+                asset_manifest.write(f"{filename} = '{relpath}',\n")
+    asset_manifest.write("}\n")
     asset_manifest.write("\n")
-    asset_manifest.write("return assets\n")
+    asset_manifest.write("return asset_tables\n")

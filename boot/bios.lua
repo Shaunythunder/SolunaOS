@@ -41,7 +41,7 @@ do
     --- @param address string
     --- @return function|nil init_function
     local function tryLoadFrom(address)
-        local handle, reason = boot_invoke(address, "open", "/init.lua")
+        local handle, reason = boot_invoke(address, "open", "boot/init.lua")
         if not handle then
             return nil, reason
         end

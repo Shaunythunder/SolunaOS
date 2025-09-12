@@ -59,7 +59,8 @@ do
         local scripts = {}
         local filesystem = _G.OS_FILESYSTEM
         for _, filename in ipairs(filesystem.list("/boot")) do
-            if filename:match("%.lua$") and filename ~= "boot.lua" then
+            if filename:match("%.lua$") and filename ~= "boot.lua"
+            and filename ~= "bios.lua" and filename ~= "init.lua" then
                 table.insert(scripts, "/boot/" .. filename)
             end
         end

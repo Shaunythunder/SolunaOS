@@ -24,7 +24,11 @@ local drawgui = {}
         end
     end
 
-    function drawgui.renderTaskbar()
+    function drawgui.renderTaskbar(image)
+        if image then
+            draw.image(image, 1, _G.height - 1)
+            return
+        end
         local gpu = _G.primary_gpu
         local width = _G.width
         local height = _G.height
@@ -32,6 +36,32 @@ local drawgui = {}
         local taskbar_color = colors.DARKGRAY
         gpu.setBackground(taskbar_color)
         gpu.fill(1, height - taskbar_height + 1, width, taskbar_height, " ")
+    end
+
+    function drawgui.renderStartButtonNoHighlight(image, x_pos, y_pos)
+        if image then
+            draw.image(image, x_pos, y_pos)
+            return
+        end
+        local gpu = _G.primary_gpu
+        local button_width = 2
+        local button_height = 2
+        local button_color = colors.BLUE
+        gpu.setBackground(button_color)
+        gpu.fill(x_pos, y_pos, button_width, button_height, " ")
+    end
+
+    function drawgui.renderStartButtonHighlight(image, x_pos, y_pos)
+        if image then
+            draw.image(image, x_pos, y_pos)
+            return
+        end
+        local gpu = _G.primary_gpu
+        local button_width = 2
+        local button_height = 2
+        local button_color = colors.CYAN
+        gpu.setBackground(button_color)
+        gpu.fill(x_pos, y_pos, button_width, button_height, " ")
     end
 
     function drawgui.renderWindow(window_obj)
@@ -56,6 +86,7 @@ local drawgui = {}
             gpu.set(window_obj.x + 1, window_obj.y, window_obj.title)
         end
 
+        -- Close, Maximize, Minimize Buttons
         local close_symbol = window_obj.close_button_symbol or unicode.CLOSE
         local max_symbol = window_obj.max_button_symbol or unicode.MAXIMIZE
         local min_symbol = window_obj.min_button_symbol or unicode.MINIMIZE
@@ -72,6 +103,14 @@ local drawgui = {}
         draw.singleCharacter(close_symbol, close_pos, button_rack_y, colors.BLACK, close_color)
         draw.singleCharacter(max_symbol, max_pos, button_rack_y, colors.BLACK, max_color)
         draw.singleCharacter(min_symbol, min_pos, button_rack_y, colors.BLACK, min_color)
+
+        -- Window expansion buttons
+        local expand_button_x = window_obj.expand_button_x
+        local expand_button_y = window_obj.expand_button_y
+        local expand_button_color = window_obj.expand_button_color
+        local expand_button_symbol = window_obj.expand_button_symbol
+
+        draw.singleCharacter(expand_button_symbol, expand_button_x, expand_button_y, colors.BLACK, expand_button_color)
     end
 
     function drawgui.renderDivider(y_pos, color)
@@ -109,7 +148,8 @@ local drawgui = {}
             local text_x = x_pos + math.floor((width - #text) / 2)
             gpu.set(text_x, y_pos + math.floor(height / 2), text)
         end
-end
+    end
+
 
 
 return drawgui

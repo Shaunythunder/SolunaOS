@@ -1,4 +1,4 @@
-rm -rf /tmp/bios.lua && wget http://localhost:8000/bios.lua /tmp/bios.lua && flash /tmp/bios.lua
+rm -rf /tmp/bios.lua && wget http://localhost:8000/boot/bios.lua /tmp/bios.lua && flash /tmp/bios.lua
 rm -rf /mnt/b94/init.lua && wget http://localhost:8000/init.lua /mnt/b94/init.lua 
-rm -rf /tmp/disk_imager.lua && wget http://localhost:8000/disk_imager.lua /tmp/disk_imager.lua && /tmp/disk_imager.lua
-rm -rf /tmp/disk_updater.lua && wget http://localhost:8000/disk_updater.lua /tmp/disk_updater.lua && /tmp/disk_updater.lua
+rm -rf /tmp/disk_imager.lua && wget http://localhost:8000/open_os_utilities/disk_imager.lua /tmp/disk_imager.lua && /tmp/disk_imager.lua
+rm -rf /tmp/disk_updater.lua && wget http://localhost:8000/open_os_utilities/disk_updater.lua /tmp/disk_updater.lua && /tmp/disk_updater.lua

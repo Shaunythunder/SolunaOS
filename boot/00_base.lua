@@ -83,6 +83,7 @@ local component_path = "/lib/component_drivers/?.lua"
 local term_apps_path = "/lib/terminal_apps/?.lua"
 local gui_widgets_path = "/lib/gui/widgets/?.lua"
 local utilities_path = "/utilities/?.lua"
+local assets_path = "/assets/?.lua"
 local lib_path = "/lib/?.lua"
 local cmd_env_path = "/lib/core/shell/commands/environment/?.lua"
 local cmd_fs_path = "/lib/core/shell/commands/filesystem/?.lua"
@@ -92,6 +93,7 @@ local cmd_net_path = "/lib/core/shell/commands/network/?.lua"
 local cmd_sh_path = "/lib/core/shell/commands/sh/?.lua"
 local cmd_sys_path = "/lib/core/shell/commands/system/?.lua"
 local cmd_text_path = "/lib/core/shell/commands/text/?.lua"
+local asset_tables_path = "/assets/asset_tables/?.lua"
 local custom_path = "?.lua"
 
 package.path =  core_path .. ";" ..
@@ -101,6 +103,7 @@ package.path =  core_path .. ";" ..
                 term_apps_path .. ";" ..
                 gui_widgets_path .. ";" ..
                 utilities_path .. ";" ..
+                assets_path .. ";" ..
                 cmd_env_path .. ";" ..
                 cmd_fs_path .. ";" ..
                 cmd_misc_path .. ";" ..
@@ -110,6 +113,7 @@ package.path =  core_path .. ";" ..
                 cmd_sys_path .. ";" ..
                 cmd_text_path .. ";" ..
                 lib_path .. ";" ..
+                asset_tables_path .. ";" ..
                 custom_path
 
 --- Loads library or custom API modules.

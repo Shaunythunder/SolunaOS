@@ -11,15 +11,23 @@ window.__index = window
         local self = setmetatable({}, window)
         self.x = x_pos
         self.y = y_pos
+        if win_height < 10 then
+            win_height = 10
+        end
+        if win_width < 30 then
+            win_width = 30
+        end
         self.width = win_width
         self.height = win_height
         self.saved_width = nil
         self.saved_height = nil
         self.bg = bg_color or color.DARKBLUE
-        self.border = border_color or color.LIGHTGRAY
+        self.border_color = border_color or color.LIGHTGRAY
+        self.border_nonhighlight = border_color or color.LIGHTGRAY
+        self.border_highlight = color.WHITISH_RED
         self.title = title or nil
         self.focused_window = false
-        self.mode = "normal" -- normal, minimized, maximized
+        self.mode = "normal"
         self:calcButtons()
         return self
     end
@@ -42,14 +50,14 @@ window.__index = window
         local w = _G.width
         local h = _G.height
         local taskbar_offset = 2
-        if new_x < 1 then
-            new_x = 1
+        if new_x + self.width < 1 then
+            new_x = 1 - self.width + 1
         end
         if new_y < 1 then
             new_y = 1
         end
-        if new_x + self.width - 1 > w then
-            new_x = w - self.width + 1
+        if new_x > w then
+            new_x = w - 1
         end
         if new_y + taskbar_offset > h then
             new_y = h - taskbar_offset
@@ -60,8 +68,25 @@ window.__index = window
     end
 
     function window:resize(new_width, new_height)
+        local h = _G.height
+        local w = _G.width
+        local min_width = 30
+        local min_height = 10
+        if new_width < min_width then
+            new_width = min_width
+        end
+        if new_height < min_height then
+            new_height = min_height
+        end
         self.width = new_width
         self.height = new_height
+
+        if self.x + self.width - 1 > w then
+            self.width = w - self.x + 1
+        end
+        if self.y + self.height - 1 > h - 2 then
+            self.height = h - self.y - 1
+        end
         self:calcButtons()
     end
 
@@ -77,6 +102,8 @@ window.__index = window
 
     function window:handleMode(new_mode, side)
         local side = side or nil
+        local w = _G.width
+        local h = _G.height
         if new_mode == "normal" then
             if self.saved_width and self.saved_height then
                 self:resize(self.saved_width, self.saved_height)
@@ -87,23 +114,29 @@ window.__index = window
         elseif new_mode == "maximized" then
             self.saved_width = self.width
             self.saved_height = self.height
-            self:resize(_G.width, _G.height - 2) -- Assuming taskbar height is 2
-            self:move(1, 1)
+            self.width = w
+            self.height = h - 2
+            self.x = 1
+            self.y = 1
+            self:calcButtons()
             return
         elseif new_mode == "minimized" then
             self.saved_width = self.width
             self.saved_height = self.height
-            self:resize(self.width, 1) -- Minimized to title bar height
-            self:move(self.x, _G.height, "force") -- Move to bottom of screen
+            self:resize(self.width, 1)
+            self:move(self.x, h, "force")
             return
         elseif new_mode == "half_max" then
             self.saved_width = self.width
             self.saved_height = self.height
-            self:resize(math.floor(_G.width / 2), _G.height - 2) -- Half screen width, full height minus taskbar
             if side == "Left" then
+                self.height = h - 2
+                self.width = math.floor(w / 2)
                 self:move(1, 1)
             elseif side == "Right" then
-                self:move(math.floor(_G.width / 2) + 1, 1)
+                self.height = h - 2
+                self.width = math.floor(w / 2)
+                self:move(math.floor(w / 2) + 1, 1)
             end
         end
     end
@@ -133,6 +166,7 @@ window.__index = window
     end
 
     function window:calcButtons()
+        -- Close, Maximize, Minimize Buttons
         local button_rack_y = self.y
         local button_spacing = 2
         local end_rack_x = self.x + self.width - 2
@@ -157,6 +191,15 @@ window.__index = window
         self.min_button_y = button_rack_y
         self.min_button_color = color.DARKGRAY
         self.min_button_symbol = unicode.MINIMIZE
+
+        self.button_rack_start_x = self.min_button_x
+
+        -- Window expansion buttons
+        self.expand_button_x = self.x + self.width - 2
+        self.expand_button_y = self.y + self.height - 1
+        self.expand_button_color = color.DARKGRAY
+        self.expand_button_symbol = unicode.ARROW_CONTRACT
+
     end
 
     function window:isPointInsideClose(x_pos, y_pos)
@@ -167,6 +210,11 @@ window.__index = window
     end
 
     function window:isPointInsideMax(x_pos, y_pos)
+        if self.mode == "maximized" then
+            if x_pos == self.max_button_x + 1 and y_pos == self.max_button_y then
+                return true
+            end
+        end
         if x_pos == self.max_button_x and y_pos == self.max_button_y then
             return true
         end
@@ -175,6 +223,14 @@ window.__index = window
 
     function window:isPointInsideMin(x_pos, y_pos)
         if x_pos == self.min_button_x and y_pos == self.min_button_y then
+            return true
+        end
+        return false
+    end
+
+    function window:isPointInsideExpand(x_pos, y_pos)
+        if x_pos == self.expand_button_x or x_pos == self.expand_button_x + 1
+        and y_pos == self.expand_button_y then
             return true
         end
         return false
@@ -190,7 +246,7 @@ window.__index = window
 
     function window:isPointInTitleBar(x_pos, y_pos)
         if self.title and y_pos == self.y and
-           x_pos >= self.x and x_pos <= (self.x + self.width - 1) then
+           x_pos >= self.x and x_pos <= self.button_rack_start_x - 1 then
             return true
         end
         return false

@@ -13,6 +13,7 @@ window_manager:add(win1)
 window_manager:add(win2)
 
 local dragging = false
+local expanding = false
 
 while true do
     -- Clear screen and render
@@ -21,17 +22,5 @@ while true do
     drawgui.renderTaskbar()
 
     local event_type, _, x_pos, y_pos, _ = event:listen(0.05)
-
-    if event_type == "touch" then
-        local clicked_window = window_manager:handleClick(x_pos, y_pos)
-        if clicked_window and clicked_window:isPointInTitleBar(x_pos, y_pos) then
-            window_manager:startDrag(clicked_window, x_pos, y_pos)
-            dragging = true
-        end
-    elseif event_type == "drag" and dragging then
-        window_manager:updateDrag(x_pos, y_pos)
-    elseif event_type == "drop" then
-        window_manager:stopDrag()
-        dragging = false
-    end
+    window_manager:handleClick(event_type, x_pos, y_pos)
 end
