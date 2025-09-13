@@ -7,9 +7,9 @@ local asset_tables = require("asset_tables")
 
 local assets = {
 
-taskbar = nil,
-start_button_clicked = asset_tables.start_button_clicked,
-start_button_unclicked = asset_tables.start_button_unclicked,
+TASKBAR = nil,
+START_BUTTON_CLICKED = asset_tables.start_button_clicked,
+START_BUTTON_UNCLICKED = asset_tables.start_button_unclicked,
 }
 
 return assets

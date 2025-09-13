@@ -22,7 +22,7 @@ ram.flags = {}
         print("Free: " .. free_ram .. " bytes")
         print("Used: " .. used_ram .. " bytes")
         print("Percent Used: " .. string.format("%.2f", percent_used) .. "%")
-        return ""
+        return free_ram, total_ram, used_ram, percent_used
     end
 
 return ram

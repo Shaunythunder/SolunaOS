@@ -38,6 +38,9 @@ do
                 table.insert(lines, line)
             end
             local start_y = math.floor((height - #lines) / 2) + 1
+            if start_y < 1 then
+                start_y = 1
+            end
             for pos, line in ipairs(lines) do
                 local start_x = math.floor((width - #line) / 2) + 1
                 gpu.set(start_x, start_y + pos - 1, line)

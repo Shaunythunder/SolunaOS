@@ -49,7 +49,7 @@ window.__index = window
         end
         local w = _G.width
         local h = _G.height
-        local taskbar_offset = 2
+        local taskbar_offset = 3
         if new_x + self.width < 1 then
             new_x = 1 - self.width + 1
         end
@@ -84,8 +84,8 @@ window.__index = window
         if self.x + self.width - 1 > w then
             self.width = w - self.x + 1
         end
-        if self.y + self.height - 1 > h - 2 then
-            self.height = h - self.y - 1
+        if self.y + self.height - 1 > h - 3 then
+            self.height = h - self.y - 2
         end
         self:calcButtons()
     end
@@ -115,7 +115,7 @@ window.__index = window
             self.saved_width = self.width
             self.saved_height = self.height
             self.width = w
-            self.height = h - 2
+            self.height = h - 3
             self.x = 1
             self.y = 1
             self:calcButtons()
@@ -130,11 +130,11 @@ window.__index = window
             self.saved_width = self.width
             self.saved_height = self.height
             if side == "Left" then
-                self.height = h - 2
+                self.height = h - 3
                 self.width = math.floor(w / 2)
                 self:move(1, 1)
             elseif side == "Right" then
-                self.height = h - 2
+                self.height = h - 3
                 self.width = math.floor(w / 2)
                 self:move(math.floor(w / 2) + 1, 1)
             end

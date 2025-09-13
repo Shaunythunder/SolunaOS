@@ -52,30 +52,25 @@ local draw = {}
     --- Table format: { {x, y, top_color, bottom_color}, ... }
     --- Images must be accessible from package path in 00_boot.lua
     --- Use image_to_pixel.py to convert images to pixel tables.
-    --- @param image_name string Name of the image module (without .lua)
+    --- @param image_path string Name of the image module (without .lua)
     --- @param x_pos number|nil X position (optional, defaults to 1)
     --- @param y_pos number|nil Y position (optional, defaults to 1)
     --- @return string|nil error
-    function draw.image(image_name, x_pos, y_pos)
-        local image = require(image_name)
-        local h = _G.height
-        local w = _G.width
+    function draw.image(image_path, x_pos, y_pos)
+        local image = require(image_path)
         local x_pos = x_pos or 1
         local y_pos = y_pos or 1
-        local vram = _G.vram_buffer
-        gpu.setActiveBuffer(vram)
         for _, pixel in ipairs(image) do
-            draw.dualPixel(pixel[1], pixel[2], pixel[3], pixel[4])
+            draw.dualPixel(pixel[1] + x_pos - 1, pixel[2] + y_pos - 1, pixel[3], pixel[4])
         end
-        gpu.setActiveBuffer(0)
-        gpu.bitblt(0, x_pos, y_pos, w, h, vram, 1, 1)
     end
 
     -- Gets the RGB color value from R, G, B components
     --- @param r number Red component (0-255)
     --- @param g number  Green component (0-255)
     --- @param b number Blue component (0-255)
-    function draw.getRGB(r, g, b)
+    --- @return number Color value (0xRRGGBB)
+    function draw.rgbToHex(r, g, b)
         if type(r) ~= "number" or type(g) ~= "number" or type(b) ~= "number" then
             error("RGB values must be numbers")
         end

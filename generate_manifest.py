@@ -50,7 +50,8 @@ with open('assets/asset_tables.lua', 'w') as asset_manifest:
                 if relpath.startswith('.' + os.sep):
                     relpath = relpath[2:]
                 abspath = os.path.join(root, file)
-                asset_manifest.write(f"{filename} = '{relpath}',\n")
+                relpath_no_ext = os.path.splitext(relpath)[0]
+                asset_manifest.write(f"{filename} = '{relpath_no_ext}',\n")
     asset_manifest.write("}\n")
     asset_manifest.write("\n")
     asset_manifest.write("return asset_tables\n")

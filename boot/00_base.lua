@@ -77,8 +77,10 @@ _G.package = _G.package or {}
 -- These paths allow require("<module_name>") instead of the full path
 
 local core_path = "/lib/core/?.lua"
-local gui_core_path = "/lib/gui/core/?.lua"
 local shell_path = "/lib/core/shell/?.lua"
+local gui_core_path = "/lib/gui/core/?.lua"
+local gui_window_path = "/lib/gui/core/window/?.lua"
+local gui_taskbar_path = "/lib/gui/core/taskbar/?.lua"
 local component_path = "/lib/component_drivers/?.lua"
 local term_apps_path = "/lib/terminal_apps/?.lua"
 local gui_widgets_path = "/lib/gui/widgets/?.lua"
@@ -97,8 +99,10 @@ local asset_tables_path = "/assets/asset_tables/?.lua"
 local custom_path = "?.lua"
 
 package.path =  core_path .. ";" ..
-                gui_core_path .. ";" ..
                 shell_path .. ";" ..
+                gui_core_path .. ";" ..
+                gui_window_path .. ";" ..
+                gui_taskbar_path .. ";" ..
                 component_path .. ";" ..
                 term_apps_path .. ";" ..
                 gui_widgets_path .. ";" ..

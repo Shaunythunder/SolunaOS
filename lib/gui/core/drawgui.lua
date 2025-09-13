@@ -24,31 +24,93 @@ local drawgui = {}
         end
     end
 
-    function drawgui.renderTaskbar(image)
-        if image then
-            draw.image(image, 1, _G.height - 1)
+    function drawgui.renderTaskbar(taskbar)
+        local bg_color = taskbar.bg_color or colors.DARKGRAY
+        if taskbar.image then
+            draw.image(taskbar.image, taskbar.x_pos, taskbar.y_pos)
             return
         end
         local gpu = _G.primary_gpu
-        local width = _G.width
-        local height = _G.height
-        local taskbar_height = 2
-        local taskbar_color = colors.DARKGRAY
+        local taskbar_height = 3
+        local taskbar_color = bg_color or colors.DARKGRAY
         gpu.setBackground(taskbar_color)
-        gpu.fill(1, height - taskbar_height + 1, width, taskbar_height, " ")
+        gpu.fill(taskbar.x_pos, taskbar.y_pos, taskbar.width, taskbar_height, " ")
     end
 
-    function drawgui.renderStartButtonNoHighlight(image, x_pos, y_pos)
-        if image then
-            draw.image(image, x_pos, y_pos)
-            return
-        end
+    function drawgui.renderRamMeter(ram_meter)
         local gpu = _G.primary_gpu
-        local button_width = 2
-        local button_height = 2
-        local button_color = colors.BLUE
-        gpu.setBackground(button_color)
-        gpu.fill(x_pos, y_pos, button_width, button_height, " ")
+        local x_pos = ram_meter.x_pos
+        local y_pos = ram_meter.y_pos
+        local meter_width = ram_meter.width
+        local meter_height = ram_meter.height
+        local ram_used = ram_meter.used_ram
+        local ram_total = ram_meter.total_ram
+        local used_fraction = ram_used / ram_total
+        local used_percentage = used_fraction * 100
+
+
+        local used_width = meter_width * used_fraction
+        local free_width = meter_width - used_width
+
+
+        local function percentToRGBHex(percent)
+            local r = math.floor(255 * (percent / 100))
+            local g = math.floor(255 * (1 - percent / 100))
+            local b = 0
+            return draw.rgbToHex(r, g, b)
+        end
+
+        local used_color = percentToRGBHex(used_percentage)
+        local free_color = colors.BLACK
+
+        draw.singleLineText(ram_meter.text, x_pos, y_pos + 1, colors.BLACK, ram_meter.taskbar_color)
+
+        gpu.setBackground(used_color)
+        gpu.fill(x_pos, y_pos, used_width, meter_height, " ")
+
+        gpu.setBackground(free_color)
+        gpu.fill(x_pos + used_width, y_pos, free_width, meter_height, " ")
+
+        local text = string.format("%d%%", math.floor(used_percentage))
+        local text_x = x_pos + math.floor((meter_width - #text) / 2)
+        local text_y = y_pos + math.floor(meter_height / 2)
+        gpu.setForeground(colors.WHITE)
+
+        for i = 1, #text do
+            local char_x = text_x + i - 1
+            if char_x < x_pos + used_width - 1 then
+                gpu.setBackground(used_color)
+            else
+                gpu.setBackground(free_color)
+            end
+            gpu.setForeground(colors.WHITE)
+            gpu.set(char_x, text_y, text:sub(i, i))
+        end
+    end
+
+    function drawgui.renderStartButton(start_button)
+        local clicked_image = start_button.image_clicked
+        local not_clicked_image = start_button.image_unclicked
+        local x_pos = start_button.x_pos
+        local y_pos = start_button.y_pos
+        local width = start_button.width
+        local height = start_button.height
+
+        draw.image(clicked_image, x_pos, y_pos)
+
+        --[[if clicked_image and not_clicked_image then
+            if start_button.clicked then
+                draw.image(clicked_image, x_pos, y_pos)
+            else
+                draw.image(not_clicked_image, x_pos, y_pos)
+            end
+            return
+        else
+            local gpu = _G.primary_gpu
+            local button_color = colors.BLUE
+            gpu.setBackground(button_color)
+            gpu.fill(x_pos, y_pos, width, height, " ")
+        end]]
     end
 
     function drawgui.renderStartButtonHighlight(image, x_pos, y_pos)
@@ -111,6 +173,19 @@ local drawgui = {}
         local expand_button_symbol = window_obj.expand_button_symbol
 
         draw.singleCharacter(expand_button_symbol, expand_button_x, expand_button_y, colors.BLACK, expand_button_color)
+    end
+
+    function drawgui.renderEmergencyBorder()
+        local gpu = _G.primary_gpu
+        local width = _G.width
+        local height = _G.height
+        local warning_color = colors.RED
+
+        gpu.setBackground(warning_color)
+        draw.horzLine(1, 1, width, 1)
+        draw.horzLine(1, height, width, 1)
+        draw.vertLine(1, 1, height, 1)
+        draw.vertLine(width, 1, height, 1)
     end
 
     function drawgui.renderDivider(y_pos, color)
