@@ -88,6 +88,27 @@ local drawgui = {}
         end
     end
 
+    function drawgui.renderIcon(icon)
+        local image = icon.image
+        local x_pos = icon.x_pos
+        local y_pos = icon.y_pos
+        local width = icon.width
+        local height = icon.height
+        local label = icon.label
+        local label_x_pos = x_pos
+        local label_y_pos = y_pos + height
+
+        if icon.image then
+            draw.image(image, x_pos, y_pos)
+            draw.wrappedText(label, width, label_x_pos, label_y_pos, colors.BLACK)
+            return
+        end
+
+        local bg_color = icon.bg_color
+        draw.box(x_pos, y_pos, x_pos + width - 1, y_pos + height - 1, bg_color, 0)
+        draw.wrappedText(label, width, label_x_pos, label_y_pos, colors.BLACK)
+    end
+
     function drawgui.renderStartButton(start_button)
         local clicked_image = start_button.image_clicked
         local not_clicked_image = start_button.image_unclicked
@@ -96,9 +117,7 @@ local drawgui = {}
         local width = start_button.width
         local height = start_button.height
 
-        draw.image(clicked_image, x_pos, y_pos)
-
-        --[[if clicked_image and not_clicked_image then
+        if clicked_image and not_clicked_image then
             if start_button.clicked then
                 draw.image(clicked_image, x_pos, y_pos)
             else
@@ -110,20 +129,37 @@ local drawgui = {}
             local button_color = colors.BLUE
             gpu.setBackground(button_color)
             gpu.fill(x_pos, y_pos, width, height, " ")
-        end]]
+        end
     end
 
-    function drawgui.renderStartButtonHighlight(image, x_pos, y_pos)
-        if image then
-            draw.image(image, x_pos, y_pos)
-            return
-        end
+    function drawgui.renderTaskbarMenu(taskbar_menu)
         local gpu = _G.primary_gpu
-        local button_width = 2
-        local button_height = 2
-        local button_color = colors.CYAN
-        gpu.setBackground(button_color)
-        gpu.fill(x_pos, y_pos, button_width, button_height, " ")
+        local x_pos = taskbar_menu.x_pos
+        local y_pos = taskbar_menu.y_pos
+        local width = taskbar_menu.width
+        local height = taskbar_menu.height
+        local bg_color = taskbar_menu.bg_color or colors.LIGHTGRAY
+        local text_color = taskbar_menu.text_color or colors.BLACK
+
+
+        gpu.setBackground(bg_color)
+        gpu.fill(x_pos, y_pos, width, height, " ")
+
+        gpu.setForeground(text_color)
+        local renderable_items = {}
+        for _, item in ipairs(taskbar_menu.items) do
+            if item.name and item.action then
+                table.insert(renderable_items, item)
+            end
+        end
+        for _, item in ipairs(renderable_items) do
+            local item_y = item.y_pos
+            local item_text = item.name
+            if #item_text > width - 2 then
+                item_text = item_text:sub(1, width - 5) .. "..."
+            end
+            gpu.set(x_pos + 1, item_y, item_text)
+        end
     end
 
     function drawgui.renderWindow(window_obj)

@@ -5,6 +5,8 @@ window_manager.__index = window_manager
 
     function window_manager.new()
         local self = setmetatable({}, window_manager)
+        self.taskbar_manager = nil
+        self.app_manager = nil
         self.windows = {}
         self.focused_window = nil
         self.dragged = {}
@@ -12,6 +14,24 @@ window_manager.__index = window_manager
         self.expanded = {}
         self.expanding = false
         return self
+    end
+
+    function window_manager:terminate()
+        for _, window in ipairs(self.windows) do
+            window:terminate()
+        end
+        for attribute in pairs(self) do
+            self[attribute] = nil
+        end
+        setmetatable(self, nil)
+    end
+
+    function window_manager:setTaskbarManager(taskbar_manager)
+        self.taskbar_manager = taskbar_manager
+    end
+
+    function window_manager:setAppManager(app_manager)
+        self.app_manager = app_manager
     end
 
     function window_manager:add(window)
@@ -68,6 +88,7 @@ window_manager.__index = window_manager
             if window:isPointInsideClose(x_pos, y_pos) then
                 self:remove(window)
                 window:terminate()
+                self.app_manager:closeApp(window.app)
                 return nil
             elseif window:isPointInsideMin(x_pos, y_pos) then
                 window:setMode("minimized")

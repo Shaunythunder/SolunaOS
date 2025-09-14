@@ -1,5 +1,7 @@
 -- /lib/core/draw.lua
 
+local colors = require("colors")
+
 local gpu = _G.primary_gpu
 local cursor = _G.cursor
 local BLACK = 0x000000
@@ -127,6 +129,32 @@ local draw = {}
         gpu.set(x_pos, y_pos, string)
     end
 
+    function draw.wrappedText(raw_text, max_width, x_pos, y_pos, foreground)
+        local h = _G.height
+        local gpu = _G.primary_gpu
+        local fg = foreground or colors.BLACK
+        local lines = {}
+        for actual_line in raw_text:gmatch("([^\n]*)\n?") do
+            while #actual_line > 0 do
+                if #actual_line > max_width then
+                    local wrapped_line = actual_line:sub(1, max_width)
+                    table.insert(lines, wrapped_line)
+                    actual_line = actual_line:sub(max_width + 1)
+                else
+                    table.insert(lines, actual_line)
+                    break
+                end
+            end
+        end
+        gpu.setForeground(fg)
+        for i, line_text in ipairs(lines) do
+            if y_pos + i - 1 > h then
+                break
+            end
+            gpu.set(x_pos, y_pos + i - 1, line_text)
+        end
+    end
+
     -- Renders text for terminal, line by line
     ---@param raw_line string
     ---@param x_pos number|nil
@@ -189,7 +217,7 @@ local draw = {}
     --- @param end_x number
     --- @param end_y number
     --- @param color number hex only, use render.getRGB()
-    --- @param lineweight number
+    --- @param lineweight number 0 for filled
     function draw.box(start_x, start_y, end_x, end_y, color, lineweight)
         lineweight = lineweight or 0
         gpu.setForeground(color)

@@ -30,4 +30,21 @@ start_button.__index = start_button
         drawgui.renderStartButton(self)
     end
 
+    function start_button:toggleClicked()
+        self.clicked = not self.clicked
+    end
+
+    function start_button:clicked()
+        self.clicked = true
+    end
+
+    function start_button:unclicked()
+        self.clicked = false
+    end
+
+    function start_button:isPointInButton(x_pos, y_pos)
+        return x_pos >= self.x_pos and x_pos < self.x_pos + self.width and
+               y_pos >= self.y_pos and y_pos < self.y_pos + self.height
+    end
+
 return start_button

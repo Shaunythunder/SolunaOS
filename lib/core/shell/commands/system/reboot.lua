@@ -9,6 +9,7 @@ reboot.flags = {}
 
     -- Reboots the system
     function reboot.execute(args, _, _)
+        local args = args or {}
         if #args > 0 then
             return reboot.usage
         end

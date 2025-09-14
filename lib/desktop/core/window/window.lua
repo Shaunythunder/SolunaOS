@@ -3,14 +3,15 @@
 local drawgui = require("drawgui")
 local unicode = require("unicode")
 local color = require("colors")
+local screen = require("window_screen")
 
 local window = {}
 window.__index = window
 
     function window.new(x_pos, y_pos, win_width, win_height, bg_color, border_color, title)
         local self = setmetatable({}, window)
-        self.x = x_pos
-        self.y = y_pos
+        self.x_pos = x_pos
+        self.y_pos = y_pos
         if win_height < 10 then
             win_height = 10
         end
@@ -26,6 +27,7 @@ window.__index = window
         self.border_nonhighlight = border_color or color.LIGHTGRAY
         self.border_highlight = color.WHITISH_RED
         self.title = title or nil
+        self.screen = screen.new(window)
         self.focused_window = false
         self.mode = "normal"
         self:calcButtons()
@@ -33,10 +35,17 @@ window.__index = window
     end
 
     function window:terminate()
+        if self.screen and self.screen.terminate then
+            self.screen:terminate()
+        end
         for attribute in pairs(self) do
             self[attribute] = nil -- Clear methods to free up memory
         end
         setmetatable(self, nil)
+    end
+
+    function window:getScreen()
+        return self.screen
     end
 
     function window:move(new_x, new_y, mode)

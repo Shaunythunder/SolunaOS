@@ -78,12 +78,14 @@ _G.package = _G.package or {}
 
 local core_path = "/lib/core/?.lua"
 local shell_path = "/lib/core/shell/?.lua"
-local gui_core_path = "/lib/gui/core/?.lua"
-local gui_window_path = "/lib/gui/core/window/?.lua"
-local gui_taskbar_path = "/lib/gui/core/taskbar/?.lua"
+local gui_core_path = "/lib/desktop/core/?.lua"
+local gui_window_path = "/lib/desktop/core/window/?.lua"
+local gui_taskbar_path = "/lib/desktop/core/taskbar/?.lua"
+local gui_icons_path = "/lib/desktop/core/icons/?.lua"
 local component_path = "/lib/component_drivers/?.lua"
 local term_apps_path = "/lib/terminal_apps/?.lua"
-local gui_widgets_path = "/lib/gui/widgets/?.lua"
+local gui_widgets_path = "/lib/desktop/widgets/?.lua"
+local apps_path = "/apps/?.lua"
 local utilities_path = "/utilities/?.lua"
 local assets_path = "/assets/?.lua"
 local lib_path = "/lib/?.lua"
@@ -103,9 +105,11 @@ package.path =  core_path .. ";" ..
                 gui_core_path .. ";" ..
                 gui_window_path .. ";" ..
                 gui_taskbar_path .. ";" ..
+                gui_icons_path .. ";" ..
                 component_path .. ";" ..
                 term_apps_path .. ";" ..
                 gui_widgets_path .. ";" ..
+                apps_path .. ";" ..
                 utilities_path .. ";" ..
                 assets_path .. ";" ..
                 cmd_env_path .. ";" ..

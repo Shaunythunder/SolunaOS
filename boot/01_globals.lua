@@ -13,7 +13,7 @@ local component_manager = Component_manager.new()
 _G.component_manager = component_manager
 
 
-_G.fps = 0.05
+_G.dt = 0.05
 
 local Keyboard = require("keyboard")
 local keyboard = Keyboard.new()

@@ -9,6 +9,7 @@ shutdown.flags = {}
 
     -- Shuts down the system
     function shutdown.execute(args, _, _)
+        local args = args or {}
         if #args > 0 then
             return shutdown.usage
         end
