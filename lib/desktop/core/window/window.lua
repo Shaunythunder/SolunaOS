@@ -27,7 +27,7 @@ window.__index = window
         self.border_nonhighlight = border_color or color.LIGHTGRAY
         self.border_highlight = color.WHITISH_RED
         self.title = title or nil
-        self.screen = screen.new(window)
+        self.screen = screen.new(self)
         self.focused_window = false
         self.mode = "normal"
         self:calcButtons()
@@ -51,8 +51,8 @@ window.__index = window
     function window:move(new_x, new_y, mode)
         local mode = mode or "normal"
         if mode == "force" then
-            self.x = new_x
-            self.y = new_y
+            self.x_pos = new_x
+            self.y_pos = new_y
             self:calcButtons()
             return
         end
@@ -71,8 +71,8 @@ window.__index = window
         if new_y + taskbar_offset > h then
             new_y = h - taskbar_offset
         end
-        self.x = new_x
-        self.y = new_y
+        self.x_pos = new_x
+        self.y_pos = new_y
         self:calcButtons()
     end
 
@@ -90,11 +90,11 @@ window.__index = window
         self.width = new_width
         self.height = new_height
 
-        if self.x + self.width - 1 > w then
-            self.width = w - self.x + 1
+        if self.x_pos + self.width - 1 > w then
+            self.width = w - self.x_pos + 1
         end
-        if self.y + self.height - 1 > h - 3 then
-            self.height = h - self.y - 2
+        if self.y_pos + self.height - 1 > h - 3 then
+            self.height = h - self.y_pos - 2
         end
         self:calcButtons()
     end
@@ -125,15 +125,15 @@ window.__index = window
             self.saved_height = self.height
             self.width = w
             self.height = h - 3
-            self.x = 1
-            self.y = 1
+            self.x_pos = 1
+            self.y_pos = 1
             self:calcButtons()
             return
         elseif new_mode == "minimized" then
             self.saved_width = self.width
             self.saved_height = self.height
             self:resize(self.width, 1)
-            self:move(self.x, h, "force")
+            self:move(self.x_pos, h, "force")
             return
         elseif new_mode == "half_max" then
             self.saved_width = self.width
@@ -176,9 +176,9 @@ window.__index = window
 
     function window:calcButtons()
         -- Close, Maximize, Minimize Buttons
-        local button_rack_y = self.y
+        local button_rack_y = self.y_pos
         local button_spacing = 2
-        local end_rack_x = self.x + self.width - 2
+        local end_rack_x = self.x_pos + self.width - 2
 
         self.close_button_x = end_rack_x
         self.close_button_y = button_rack_y
@@ -204,8 +204,8 @@ window.__index = window
         self.button_rack_start_x = self.min_button_x
 
         -- Window expansion buttons
-        self.expand_button_x = self.x + self.width - 2
-        self.expand_button_y = self.y + self.height - 1
+        self.expand_button_x = self.x_pos + self.width - 2
+        self.expand_button_y = self.y_pos + self.height - 1
         self.expand_button_color = color.DARKGRAY
         self.expand_button_symbol = unicode.ARROW_CONTRACT
 
@@ -246,16 +246,16 @@ window.__index = window
     end
 
     function window:isPointInside(x_pos, y_pos)
-        if x_pos >= self.x and x_pos <= (self.x + self.width - 1) and
-           y_pos >= self.y and y_pos <= (self.y + self.height - 1) then
+        if x_pos >= self.x_pos and x_pos <= (self.x_pos + self.width - 1) and
+           y_pos >= self.y_pos and y_pos <= (self.y_pos + self.height - 1) then
             return true
         end
         return false
     end
 
     function window:isPointInTitleBar(x_pos, y_pos)
-        if self.title and y_pos == self.y and
-           x_pos >= self.x and x_pos <= self.button_rack_start_x - 1 then
+        if self.title and y_pos == self.y_pos and
+           x_pos >= self.x_pos and x_pos <= self.button_rack_start_x - 1 then
             return true
         end
         return false
@@ -263,16 +263,16 @@ window.__index = window
 
     function window:isBorderTouchingScreenSideEdge()
         local w = _G.width
-        if self.x <= 1 then
+        if self.x_pos <= 1 then
             return true, "Left"
-        elseif (self.x + self.width - 1) >= w then
+        elseif (self.x_pos + self.width - 1) >= w then
             return true, "Right"
         end
         return false
     end
 
     function window:isBorderTouchingScreenTopEdge()
-        if self.y <= 1 then
+        if self.y_pos <= 1 then
             return true
         end
         return false

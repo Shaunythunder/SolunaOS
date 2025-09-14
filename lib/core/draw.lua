@@ -2,25 +2,29 @@
 
 local colors = require("colors")
 
-local gpu = _G.primary_gpu
-local cursor = _G.cursor
-local BLACK = 0x000000
-local WHITE = 0xFFFFFF
-
 local draw = {}
 
     --- Updates the resolution variables
-    function draw.updateResolution()
+    function draw.updateResolution(gpu)
+        local gpu = gpu or _G.primary_gpu
         _G.width, _G.height = gpu.getResolution()
     end
 
-    --- Clears the screen to black
-    function draw.clear()
-        local h = _G.height
-        local w = _G.width
-        gpu.setForeground(WHITE)
-        gpu.setBackground(BLACK)
-        gpu.fill(1, 1, w, h, " ")
+    --- Clears the screen to black. Defaults to full screen, parameters are for windows.
+    --- @param x_pos number|nil
+    --- @param y_pos number|nil
+    --- @param height number|nil
+    --- @param width number|nil 
+    --- @param gpu table|nil
+    function draw.clear(x_pos, y_pos, height, width, gpu)
+        local gpu = gpu or _G.primary_gpu
+        local x = x_pos or 1
+        local y = y_pos or 1
+        local h = height or _G.height
+        local w = width or _G.width
+        gpu.setForeground(colors.WHITE)
+        gpu.setBackground(colors.BLACK)
+        gpu.fill(x, y, w, h, " ")
     end
 
     --- Renders a string at specified coordinates at the specified color
@@ -29,6 +33,7 @@ local draw = {}
     --- @param color number Color value (0xRRGGBB)
     --- @return string|nil error
     function draw.pixel(x_pos, y_pos, color)
+        local gpu = _G.primary_gpu
         local h = _G.height
         local w = _G.width
         if x_pos < 1 or x_pos > w or y_pos < 1 or y_pos > h then
@@ -39,7 +44,14 @@ local draw = {}
         gpu.fill(x_pos, y_pos, 1, 1, " ")
     end
 
+    -- Renders a dual pixel (top and bottom half) at specified coordinates at the specified colors
+    --- @param x_pos number
+    --- @param y_pos number
+    --- @param top_color number Color value (0xRRGGBB)
+    --- @param bottom_color number Color value (0xRRGGBB)
+    --- @return string|nil error
     function draw.dualPixel(x_pos, y_pos, top_color, bottom_color)
+        local gpu = _G.primary_gpu
         local h = _G.height
         local w = _G.width
         if x_pos < 1 or x_pos > w or y_pos < 1 or y_pos > h then
@@ -55,15 +67,15 @@ local draw = {}
     --- Images must be accessible from package path in 00_boot.lua
     --- Use image_to_pixel.py to convert images to pixel tables.
     --- @param image_path string Name of the image module (without .lua)
-    --- @param x_pos number|nil X position (optional, defaults to 1)
-    --- @param y_pos number|nil Y position (optional, defaults to 1)
+    --- @param x_pos number|nil
+    --- @param y_pos number|nil
     --- @return string|nil error
     function draw.image(image_path, x_pos, y_pos)
         local image = require(image_path)
-        local x_pos = x_pos or 1
-        local y_pos = y_pos or 1
+        local x = x_pos or 1
+        local y = y_pos or 1
         for _, pixel in ipairs(image) do
-            draw.dualPixel(pixel[1] + x_pos - 1, pixel[2] + y_pos - 1, pixel[3], pixel[4])
+            draw.dualPixel(pixel[1] + x - 1, pixel[2] + y - 1, pixel[3], pixel[4])
         end
     end
 
@@ -85,50 +97,76 @@ local draw = {}
 
     -- Renders a single character at specified coordinates at the specified color
     --- @param char string
-    --- @param x_pos number|nil X position (optional, defaults to cursor X)
-    --- @param y_pos number|nil Y position (optional, defaults to cursor home Y)
-    --- @param foreground number|nil (0xRRGGBB, optional, defaults to white)
-    --- @param background number|nil (0xRRGGBB, optional, defaults to black)
+    --- @param x_pos number|nil
+    --- @param y_pos number|nil
+    --- @param foreground number|nil
+    --- @param background number|nil
+    --- @param cursor table|nil
     --- @return string|nil error
-    function draw.singleCharacter(char, x_pos, y_pos, foreground, background)
+    function draw.singleCharacter(char, x_pos, y_pos, foreground, background, cursor)
+        local gpu = _G.primary_gpu
         local h = _G.height
-        local x_home = x_pos or cursor:getX()
-        local home_y = y_pos or cursor:getHomeY()
-        local fg = foreground or WHITE
-        local bg = background or BLACK
+        local cur = cursor or _G.cursor
+        local x = x_pos or cur:getX()
+        local y = y_pos or cur:getHomeY()
+        local fg = foreground or colors.WHITE
+        local bg = background or colors.BLACK
         gpu.setForeground(fg)
         gpu.setBackground(bg)
-        if home_y > h then
-            return "Y position out of bounds"
+        if y > h then
+            return
         end
-        gpu.set(x_home, home_y, char)
+        gpu.set(x, y, char)
     end
 
-    function draw.singleLineText(raw_line, x_pos, y_pos, foreground, background)
-        local h = _G.height
-        local w = _G.width
-        local x_home = x_pos or cursor:getX()
-        local home_y = y_pos or cursor:getHomeY()
-        local fg = foreground or WHITE
-        local bg = background or BLACK
+    -- Renders a single line of text at specified coordinates at the specified color
+    --- @param raw_line stringlib
+    --- @param x_pos number|nil
+    --- @param y_pos number|nil
+    --- @param foreground number|nil
+    --- @param background number|nil
+    --- @param height number|nil
+    --- @param width number|nil
+    function draw.singleLineText(raw_line, x_pos, y_pos, foreground, background, height, width)
+        local gpu = _G.primary_gpu
+        local h = height or _G.height
+        local w = width or _G.width
+        local x = x_pos or cursor:getX()
+        local y = y_pos or cursor:getHomeY()
+        local fg = foreground or colors.WHITE
+        local bg = background or colors.BLACK
         gpu.setForeground(fg)
         gpu.setBackground(bg)
-        if home_y > h then
-            return "Y position out of bounds"
+        if y > h or x > w then
+            return
         end
-        gpu.fill(1, home_y, w, 1, " ")
-        gpu.set(x_home, home_y, raw_line:sub(1, w))
+        gpu.fill(x, y, w, 1, " ")
+        gpu.set(x, y, raw_line:sub(1, w))
     end
 
+    -- Renders highlighted text at specified coordinates at the specified colors
+    --- @param string string
+    --- @param x_pos number
+    --- @param y_pos number
+    --- @param foreground number|nil
+    --- @param background number|nil
+    --- @return string|nil error
     function draw.highlightText(string, x_pos, y_pos, foreground, background)
-        local fg = foreground or BLACK
-        local bg = background or WHITE
+        local gpu = _G.primary_gpu
+        local fg = foreground or colors.BLACK
+        local bg = background or colors.WHITE
         gpu.setForeground(fg)
         gpu.setBackground(bg)
         gpu.fill(x_pos, y_pos, #string, 1, " ")
         gpu.set(x_pos, y_pos, string)
     end
 
+    -- Renders wrapped text at specified coordinates at the specified color
+    --- @param raw_text string
+    --- @param max_width number
+    --- @param x_pos number
+    --- @param y_pos number
+    --- @param foreground number|nil
     function draw.wrappedText(raw_text, max_width, x_pos, y_pos, foreground)
         local h = _G.height
         local gpu = _G.primary_gpu
@@ -162,13 +200,14 @@ local draw = {}
     ---@param foreground number|nil hex only, use render.getRGB() white default
     ---@param background number|nil hex only, use render.getRGB() black default
     function draw.termText(raw_line, x_pos, y_pos, foreground, background)
+        local gpu = _G.primary_gpu
         local h = _G.height
         local w = _G.width
         local active_scroll_buffer = _G.scroll_buffer
         local x_home = x_pos or cursor:getX()
         local home_y = y_pos or cursor:getHomeY()
-        local fg = foreground or WHITE
-        local bg = background or BLACK
+        local fg = foreground or colors.WHITE
+        local bg = background or colors.BLACK
         gpu.setForeground(fg)
         gpu.setBackground(bg)
         local y_below = h - home_y - 1

@@ -1,5 +1,7 @@
 -- /lib/gui/core/taskbar/taskbar_icons.lua
 
+local drawgui = require("drawgui")
+
 local icon = {}
 icon.__index = icon
 
@@ -16,8 +18,8 @@ icon.__index = icon
         self.height = 3
         self.app_path = app_path
         self.pinned = false
-        self.last_click_time = 0
-        self.click_interval = 0.5
+        self.first_click = false
+        self.second_click = false
         return self
     end
 
@@ -29,9 +31,8 @@ icon.__index = icon
     end
 
     function icon:render()
-        self.app_manager:renderIcon(self)
+        drawgui.renderIcon(self)
     end
-
 
     function icon:move(new_x, new_y)
         local h = _G.height
@@ -65,7 +66,7 @@ icon.__index = icon
         self.y_pos = new_y
     end
 
-    function icon:isPointInIcon(x_pos, y_pos)
+    function icon:isPointInsideIcon(x_pos, y_pos)
         return x_pos >= self.x_pos and x_pos < self.x_pos + self.width and
                y_pos >= self.y_pos and y_pos < self.y_pos + self.height
     end
@@ -90,15 +91,6 @@ icon.__index = icon
         return self.app
     end
 
-    function icon:canTrigger()
-        local current_time = os.clock()
-        if current_time - self.last_click_time >= self.click_interval then
-            self.last_click_time = current_time
-            return true
-        end
-        return false
-    end
-
     function icon:canDrag()
         local current_time = os.clock()
         if current_time - self.last_click_time >= self.click_interval then
@@ -107,12 +99,32 @@ icon.__index = icon
         return false
     end
 
-    function icon:Trigger()
-        if self.app then
-            if self:canTrigger() then
-                self.app_manager:launchApp(self.app)
+    function icon:handleClick()
+        if not self.first_click then
+            self.first_click = true
+            self.second_click = false
+        elseif self.first_click and not self.second_click then
+            self.second_click = true
+            self:trigger()
+            return true
+        end
+        return false
+    end
+
+    function icon:unclicked()
+        self.first_click = false
+        self.second_click = false
+    end
+
+    function icon:trigger()
+        if self.app_path then
+            if self.second_click then
+                self.app_manager:launchApp(self.app_path)
+                self:unclicked()
+                return true
             end
         end
+        return false
     end
 
 return icon

@@ -101,7 +101,4 @@ taskbar_menu.__index = taskbar_menu
 
     end
 
-
-
-
 return taskbar_menu

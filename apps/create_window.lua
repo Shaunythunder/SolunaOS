@@ -30,3 +30,5 @@ create_window_app.__index = create_window_app
         self.screen = self.window:getScreen()
         return self
     end
+
+return create_window_app

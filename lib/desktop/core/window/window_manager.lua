@@ -88,7 +88,9 @@ window_manager.__index = window_manager
             if window:isPointInsideClose(x_pos, y_pos) then
                 self:remove(window)
                 window:terminate()
-                self.app_manager:closeApp(window.app)
+                if window.app then
+                    self.app_manager:closeApp(window.app)
+                end
                 return nil
             elseif window:isPointInsideMin(x_pos, y_pos) then
                 window:setMode("minimized")
@@ -113,14 +115,13 @@ window_manager.__index = window_manager
     function window_manager:startDrag(window, start_x, start_y)
         self.dragged = {
         window = window,
-        offset_x = start_x - window.x,
-        offset_y = start_y - window.y
+        offset_x = start_x - window.x_pos,
+        offset_y = start_y - window.y_pos
     }
     end
 
     function window_manager:isWithinSnap(x_pos, y_pos)
         local w = _G.width
-        local h = _G.height
         local x_snap = (x_pos <= 3) or (x_pos >= w - 2)
         local y_snap = y_pos == 1
         if x_snap or y_snap then
@@ -152,7 +153,6 @@ window_manager.__index = window_manager
     end
 
     function window_manager:stopDrag(x_pos, y_pos)
-        local w = _G.width
         local window = self.dragged.window
         if window.border ~= window.border_nonhighlight then
             window:setBorderColor(window.border_nonhighlight)
@@ -175,21 +175,21 @@ window_manager.__index = window_manager
     function window_manager:startExpansion(window, start_x, start_y)
         self.expanded = {
         window = window,
-        offset_x = start_x - (window.x + window.width - 1),
-        offset_y = start_y - (window.y + window.height - 1)
+        offset_x = start_x - (window.x_pos + window.width - 1),
+        offset_y = start_y - (window.y_pos + window.height - 1)
     }
     end
 
     function window_manager:updateExpansion(x_pos, y_pos)
         local window = self.expanded.window
         if window then
-            local new_width = (x_pos - self.expanded.offset_x) - window.x + 1
-            local new_height = (y_pos - self.expanded.offset_y) - window.y + 1
+            local new_width = (x_pos - self.expanded.offset_x) - window.x_pos + 1
+            local new_height = (y_pos - self.expanded.offset_y) - window.y_pos + 1
             if new_width < 10 then
                 new_width = 10
             end
             if new_height < 5 then
-                new_height = 5 
+                new_height = 5
             end
             window:resize(new_width, new_height)
         end

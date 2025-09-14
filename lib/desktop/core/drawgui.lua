@@ -104,7 +104,7 @@ local drawgui = {}
             return
         end
 
-        local bg_color = icon.bg_color
+        local bg_color = icon.color
         draw.box(x_pos, y_pos, x_pos + width - 1, y_pos + height - 1, bg_color, 0)
         draw.wrappedText(label, width, label_x_pos, label_y_pos, colors.BLACK)
     end
@@ -167,21 +167,21 @@ local drawgui = {}
         local bg_color = window_obj.bg or colors.DARKGRAY
         local border_color = window_obj.border or colors.LIGHTGRAY
 
-        local end_x = window_obj.x + window_obj.width - 1
-        local end_y = window_obj.y + window_obj.height - 1
+        local end_x = window_obj.x_pos + window_obj.width - 1
+        local end_y = window_obj.y_pos + window_obj.height - 1
 
         gpu.setBackground(bg_color)
-        gpu.fill(window_obj.x + 1, window_obj.y + 1, window_obj.width - 2, window_obj.height - 2, " ")
+        gpu.fill(window_obj.x_pos + 1, window_obj.y_pos + 1, window_obj.width - 2, window_obj.height - 2, " ")
 
         gpu.setBackground(border_color)
-        draw.horzLine(window_obj.x, window_obj.y, window_obj.width, 1)
-        draw.horzLine(window_obj.x, end_y, window_obj.width, 1)
-        draw.vertLine(window_obj.x, window_obj.y, window_obj.height, 1)
-        draw.vertLine(end_x, window_obj.y, window_obj.height, 1)
+        draw.horzLine(window_obj.x_pos, window_obj.y_pos, window_obj.width, 1)
+        draw.horzLine(window_obj.x_pos, end_y, window_obj.width, 1)
+        draw.vertLine(window_obj.x_pos, window_obj.y_pos, window_obj.height, 1)
+        draw.vertLine(end_x, window_obj.y_pos, window_obj.height, 1)
 
         if window_obj.title then
             gpu.setForeground(colors.BLACK)
-            gpu.set(window_obj.x + 1, window_obj.y, window_obj.title)
+            gpu.set(window_obj.x_pos + 1, window_obj.y_pos, window_obj.title)
         end
 
         -- Close, Maximize, Minimize Buttons
@@ -189,7 +189,7 @@ local drawgui = {}
         local max_symbol = window_obj.max_button_symbol or unicode.MAXIMIZE
         local min_symbol = window_obj.min_button_symbol or unicode.MINIMIZE
 
-        local button_rack_y = window_obj.y
+        local button_rack_y = window_obj.y_pos
         local close_pos = window_obj.close_button_x or (end_x - 1)
         local max_pos = window_obj.max_button_x or (close_pos - 2)
         local min_pos = window_obj.min_button_x or (max_pos - 2)

@@ -66,3 +66,5 @@ app_manager.__index = app_manager
             error("Invalid app instance provided for termination.")
         end
     end
+
+return app_manager

@@ -34,3 +34,5 @@ window_screen.__index = window_screen
         self.x_pos = x_pos
         self.y_pos = y_pos
     end
+
+return window_screen

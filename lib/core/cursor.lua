@@ -2,28 +2,25 @@
 -- Cursor management module
 
 local gpu = _G.primary_gpu
-local x_max_pos, y_max_pos = _G.width, _G.height
-local x_min_pos, y_min_pos = 1, 1
-local old_fg = gpu.getForeground()
-local old_bg = gpu.getBackground()
-local old_char = " "
 
 local cursor = {}
     cursor.__index = cursor
 
     -- Creates a new cursor object
-    function cursor.new()
+    function cursor.new(x_pos, y_pos, height, width)
         local self = setmetatable({}, cursor)
-        self.x_pos = x_min_pos
-        self.y_pos = y_min_pos
-        self.home_y = y_min_pos
-        self.x_max_pos = x_max_pos
-        self.y_max_pos = y_max_pos
-        self.x_min_pos = x_min_pos
-        self.y_min_pos = y_min_pos
-        self.old_char = old_char
-        self.old_fg = old_fg
-        self.old_bg = old_bg
+        local h = height or _G.height
+        local w = width or _G.width
+        self.x_pos = x_pos or 1
+        self.y_pos = y_pos or 1
+        self.home_y = 1
+        self.x_max_pos = x_pos + w - 1
+        self.y_max_pos = y_pos + h - 1
+        self.x_min_pos = x_pos or 1
+        self.y_min_pos = y_pos or 1
+        self.old_char = " "
+        self.old_fg = gpu.getForeground()
+        self.old_bg = gpu.getBackground()
         self.visible = true
         return self
     end
@@ -37,20 +34,29 @@ local cursor = {}
         setmetatable(self, nil)
         collectgarbage()
     end
-    
+
     -- Resets the cursor to default
-    function cursor:reset()
-        self.x_pos = 1
-        self.y_pos = 1
+    function cursor:reset(x_pos, y_pos, height, width)
+        self.x_pos = x_pos or 1
+        self.y_pos = y_pos or 1
         self:updateBoundaries()
-        self.x_min_pos = x_min_pos
-        self.y_min_pos = y_min_pos
+        self.x_min_pos = x_pos or 1
+        self.y_min_pos = y_pos or 1
+        self.x_max_pos = self.x_min_pos + (width or _G.width) - 1
+        self.y_max_pos = self.y_min_pos + (height or _G.height) - 1
     end
 
     -- Update to screen boundaries
-    function cursor:updateBoundaries()
-        self.x_max_pos = _G.width
-        self.y_max_pos = _G.height
+    function cursor:updateBoundaries(height, width)
+        self.x_max_pos = width or _G.width
+        self.y_max_pos = height or _G.height
+    end
+
+    function cursor:windowMove(x_pos, y_pos)
+        self.x_min_pos = x_pos
+        self.y_min_pos = y_pos
+        self.x_max_pos = x_pos + self.width - 1
+        self.y_max_pos = y_pos + self.height - 1
     end
 
     --- Sets the position of the cursor.

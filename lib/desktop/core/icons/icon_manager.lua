@@ -52,13 +52,11 @@ icon_manager.__index = icon_manager
 
     function icon_manager:handleClick(event_type, x_pos, y_pos)
         if event_type == "touch" then
-            local clicked_icon, can_trigger, can_drag = self:handleTouch(x_pos, y_pos)
-            if clicked_icon and can_drag then
-                self:startDrag(clicked_icon, x_pos, y_pos)
+            local clicked_icon, triggered = self:handleTouch(x_pos, y_pos)
+            if clicked_icon and not triggered then
                 self.dragging = true
-            elseif clicked_icon and can_trigger then
-                clicked_icon:trigger()
-        end
+                self:startDrag(clicked_icon, x_pos, y_pos)
+            end
         elseif event_type == "drag" and self.dragging then
             self:updateDrag(x_pos, y_pos)
         elseif event_type == "drop" and self.dragging then
@@ -71,9 +69,10 @@ icon_manager.__index = icon_manager
         for i = #self.icons, 1, -1 do
             local clicked_icon = self.icons[i]
             if clicked_icon:isPointInsideIcon(x_pos, y_pos) then
-                local can_trigger = clicked_icon:canTrigger()
-                local can_drag = clicked_icon:canDrag()
-                return clicked_icon, can_trigger, can_drag
+                local triggered = clicked_icon:handleClick()
+                return clicked_icon, triggered
+            else
+                clicked_icon:unclicked()
             end
         end
     end
@@ -81,8 +80,8 @@ icon_manager.__index = icon_manager
     function icon_manager:startDrag(icon, start_x, start_y)
         self.dragged = {
         icon = icon,
-        offset_x = start_x - icon.x,
-        offset_y = start_y - icon.y
+        offset_x = start_x - icon.x_pos,
+        offset_y = start_y - icon.y_pos
     }
     end
 
