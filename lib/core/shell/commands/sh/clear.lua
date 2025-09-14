@@ -5,13 +5,13 @@ clear.description = "Clears the terminal screen"
 clear.usage = "Usage: clear"
 clear.flags = {}
 
-    function clear.execute(args, _, shell)
-        if #args > 0 then
-            return clear.usage
-        end
-
-        shell:clear()
-        return ""
+function clear.execute(args, _, shell)
+    if #args > 0 then
+        return clear.usage
     end
+
+    shell:clear()
+    return ""
+end
 
 return clear

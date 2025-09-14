@@ -5,11 +5,11 @@ exit.description = "Exits the shell"
 exit.usage = "Usage: exit"
 exit.flags = {}
 
-  function exit.execute(args, _, _)
-    if #args > 0 then
-        return exit.usage
-    end
-    return "exit"
+function exit.execute(args, _, _)
+  if #args > 0 then
+      return exit.usage
   end
+  return "exit"
+end
 
 return exit

@@ -7,29 +7,29 @@ rmcmdhist.description = "Removes the command history"
 rmcmdhist.usage = "Usage: rmcmdhist"
 rmcmdhist.flags = {}
 
-    -- Removes the shell command history log file
-    function rmcmdhist.execute(args, _, shell)
-        if #args ~= 0 then
-            return rmcmdhist.usage
-        end
-
-        local cmd_hist_path = "/etc/logs/command_history.log"
-        local abs_path = shell:getAbsPath(cmd_hist_path)
-
-        if not fs.exists(abs_path) then
-            return "Error: Command history file does not exist: " .. abs_path
-        end
-
-        local success, err = fs.remove(abs_path)
-        if not success then
-            return "Error: Unable to remove command history file: " .. err
-        end
-
-        -- Clear in-memory history as well
-        shell.cmd_hist = {}
-        shell:resetHistoryIndex()
-
-        return ""
+-- Removes the shell command history log file
+function rmcmdhist.execute(args, _, shell)
+    if #args ~= 0 then
+        return rmcmdhist.usage
     end
+
+    local cmd_hist_path = "/etc/logs/command_history.log"
+    local abs_path = shell:getAbsPath(cmd_hist_path)
+
+    if not fs.exists(abs_path) then
+        return "Error: Command history file does not exist: " .. abs_path
+    end
+
+    local success, err = fs.remove(abs_path)
+    if not success then
+        return "Error: Unable to remove command history file: " .. err
+    end
+
+    -- Clear in-memory history as well
+    shell.cmd_hist = {}
+    shell:resetHistoryIndex()
+
+    return ""
+end
 
 return rmcmdhist

@@ -44,7 +44,7 @@ _G.print = function(...)
     for _, arg in ipairs(args) do
         table.insert(output, tostring(arg))
     end
-    terminal.writeBuffered(_G.scroll_buffer, table.concat(output, " "))
+    terminal.write(nil, nil, nil, table.concat(output, " "))
 end
 
 print("SolunaOS initializing...")
